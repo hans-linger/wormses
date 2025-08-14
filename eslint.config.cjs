@@ -1,0 +1,86 @@
+/* eslint-disable */
+module.exports = {
+	root: true,
+	env: {
+		browser: true,
+		es6: true,
+		node: false,
+	},
+	extends: [
+		"eslint:recommended",
+		"@vue/typescript/recommended",
+		"plugin:prettier/recommended",
+	],
+	parserOptions: {
+		ecmaVersion: 2020,
+	},
+	rules: {
+		"no-console": process.env.NODE_ENV === "production" ? "warn" : "off",
+		"no-debugger": process.env.NODE_ENV === "production" ? "warn" : "off",
+		quotes: [2, "double", "avoid-escape"],
+		"class-methods-use-this": 0,
+		"no-restricted-syntax": 0,
+		"no-else-return": 0,
+		"no-useless-return": 0,
+		"no-tabs": 0,
+		indent: [1, "tab", { SwitchCase: 1 }],
+		"object-curly-newline": [
+			1,
+			{
+				ObjectExpression: { consistent: true },
+				ObjectPattern: { consistent: true },
+				ImportDeclaration: { consistent: true },
+				ExportDeclaration: { consistent: true },
+			},
+		],
+		"no-useless-constructor": 0,
+		"prefer-template": 0,
+		"lines-between-class-members": 0,
+		"arrow-parens": 0,
+		"max-classes-per-file": 0,
+		"default-case": 0,
+		"@typescript-eslint/no-shadow": 0,
+		"no-shadow": 0,
+		"import/prefer-default-export": 0,
+		"no-plusplus": 0,
+		"spaced-comment": 0,
+		"no-bitwise": 0,
+		"no-mixed-operators": 0,
+		"no-param-reassign": 0,
+		"max-len": [1, { code: 80 }],
+		"operator-linebreak": 0,
+		"comma-dangle": [
+			1,
+			{
+				arrays: "always-multiline",
+				objects: "always-multiline",
+				imports: "only-multiline",
+				exports: "never",
+				functions: "never",
+			},
+		],
+		"no-case-declarations": 0,
+		"prefer-promise-reject-errors": 0,
+		"arrow-body-style": 0,
+		"implicit-arrow-linebreak": 0,
+		"no-use-before-define": 0,
+		"no-unused-expressions": 1,
+		"@typescript-eslint/no-unused-vars": 0,
+		"@typescript-eslint/no-inferrable-types": 0,
+		"prefer-destructuring": 0,
+	},
+	// settings: {
+	// 	"import/parsers": {
+	// 		"@typescript-eslint/parser": [".ts", ".tsx"],
+	// 	},
+	// 	"import/resolver": {
+	// 		typescript: {
+	// 			alwaysTryTypes: true,
+	// 		},
+	// 		node: {
+	// 			extensions: [".js", ".jsx", ".ts", ".tsx"],
+	// 		},
+	// 	},
+	// },
+	ignorePatterns: ["*.config.js", "*.js"],
+};
