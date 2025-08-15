@@ -3,8 +3,6 @@ import { Worm, WormParams } from "./Worm";
 import { FPSCamera } from "./FPSCamera";
 import { colorFunctions } from "./WormShaders";
 
-console.log("---qwea");
-
 /**
  * Main application class that sets up the 3D scene, lighting, ground, worm, and camera
  * Manages the animation loop and handles window resizing
@@ -199,10 +197,10 @@ export class WormSimulation {
 	}
 
 	/**
-	 * Creates the full worm with separate rings and pulsation
+	 * Creates the enhanced worm with natural friction physics
 	 */
 	private createWorm(): void {
-		console.log("🐛 Creating full worm...");
+		console.log("🐛 Creating enhanced worm...");
 
 		// IMPORTANT: Dispose old worm if it exists
 		if (this.worm) {
@@ -212,15 +210,17 @@ export class WormSimulation {
 
 		const wormParams: WormParams = {
 			totalLength: 20, // Total worm length
-			segmentSpacing: 1.5, // Space between rings (visible gaps)
-			ringRadius: 0.8, // Ring size
-			ringThickness: 0.12, // Ring tube thickness
-			pulsationAmplitude: 0.8, // Strong forward/backward movement
+			segmentSpacing: 1.2, // Tighter spacing for more rings
+			ringRadius: 0.6, // Smaller, more elegant rings
+			ringThickness: 0.06, // Much thinner rings for detail
+			pulsationAmplitude: 0.8, // Strong muscle contractions
 			pulsationSpeed: 2.5, // Pulsation frequency
 			headSpeed: 3.0, // Worm movement speed
 			directionChangeInterval: 4000, // Direction change frequency
 			turnInertia: 0.02, // Smooth turning
 			colorFunction: colorFunctions.rainbow,
+			frictionVariation: 0.6, // How much friction varies between rings
+			maxFrictionSpeed: 1.0, // Maximum friction speed multiplier
 		};
 
 		this.worm = new Worm(this.scene, wormParams);
@@ -228,7 +228,7 @@ export class WormSimulation {
 		// Position worm at origin
 		this.worm.setPosition(new THREE.Vector3(0, 2, 0));
 
-		console.log("✅ Full worm created successfully");
+		console.log("✅ Enhanced worm created with natural friction physics");
 
 		// Set up color cycling
 		this.setupColorCycling();
