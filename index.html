@@ -1,14 +1,244 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>worm-sim</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Worm Ring Simulation - TypeScript Version</title>
   <style>
-    html, body, canvas { margin:0; padding:0; height:100%; width:100%; background:#0b0e13; }
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #000;
+      font-family: 'Courier New', monospace;
+      cursor: crosshair;
+    }
+
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: #00ff88;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #00ff88;
+      font-size: 13px;
+      line-height: 1.4;
+      max-width: 300px;
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+    }
+
+    #info h3 {
+      margin: 0 0 10px 0;
+      color: #88ffaa;
+      text-shadow: 0 0 10px rgba(136, 255, 170, 0.5);
+    }
+
+    #info .control-group {
+      margin-bottom: 8px;
+    }
+
+    #info .key {
+      background: rgba(0, 255, 136, 0.2);
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: #ffffff;
+      font-weight: bold;
+    }
+
+    #crosshair {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 16px;
+      z-index: 100;
+      pointer-events: none;
+      text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+    }
+
+    #stats {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      color: #00ff88;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #00ff88;
+      font-size: 12px;
+      min-width: 150px;
+    }
+
+    .fade-in {
+      animation: fadeIn 2s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Pointer lock styles */
+    body.pointer-locked #info {
+      opacity: 0.3;
+      transition: opacity 0.3s;
+    }
+
+    body.pointer-locked #info:hover {
+      opacity: 1;
+    }
+
+    /* Debug panel */
+    #debug {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      color: #ffaa00;
+      z-index: 100;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ffaa00;
+      font-size: 11px;
+      max-width: 400px;
+      font-family: monospace;
+    }
   </style>
 </head>
-<body>
-<script type="module" src="/src/main.ts"></script>
+<body class="fade-in">
+<div id="info">
+  <h3>🐛 3D Worm Ring Simulation</h3>
+  <div class="control-group">
+    <strong>Click to enable FPS controls</strong>
+  </div>
+  <div class="control-group">
+    <span class="key">WASD</span> Move horizontally
+  </div>
+  <div class="control-group">
+    <span class="key">Space</span> Move up | <span class="key">Shift</span> Move down
+  </div>
+  <div class="control-group">
+    <span class="key">Mouse</span> Look around
+  </div>
+  <div class="control-group">
+    <span class="key">ESC</span> Exit pointer lock
+  </div>
+  <div style="margin-top: 10px; font-size: 11px; opacity: 0.8;">
+    The worm moves autonomously with separate pulsating rings.<br>
+    Check the debug panel below for technical info.
+  </div>
+</div>
+
+<div id="crosshair">⊕</div>
+
+<div id="stats">
+  <div>FPS: <span id="fps">--</span></div>
+  <div>Camera: <span id="camera-pos">--</span></div>
+  <div>Worm Head: <span id="worm-pos">--</span></div>
+</div>
+
+<div id="debug">
+  <strong>🔧 Debug Info:</strong><br>
+  <div id="debug-content">Loading TypeScript modules...</div>
+</div>
+
+<!-- Debug Script -->
+<script>
+  console.log('🟢 HTML LOADED - Starting TypeScript module loading...');
+
+  // Debug panel updates
+  const debugPanel = document.getElementById('debug-content');
+
+  function updateDebug(message) {
+    console.log('🔧 DEBUG:', message);
+    if (debugPanel) {
+      debugPanel.innerHTML += message + '<br>';
+    }
+  }
+
+  updateDebug('HTML loaded, Three.js available: ' + (typeof THREE !== 'undefined'));
+
+  // Check if modules are loading
+  window.addEventListener('DOMContentLoaded', () => {
+    updateDebug('DOM loaded, starting module import...');
+  });
+
+  // Global error handler
+  window.addEventListener('error', (e) => {
+    updateDebug('❌ ERROR: ' + e.message + ' at ' + e.filename + ':' + e.lineno);
+    console.error('Runtime error:', e);
+  });
+
+  // Module loading error handler
+  window.addEventListener('unhandledrejection', (e) => {
+    updateDebug('❌ PROMISE ERROR: ' + e.reason);
+    console.error('Promise rejection:', e.reason);
+  });
+
+  // Check if Three.js renderer canvas appears
+  function checkCanvas() {
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+      updateDebug('✅ Canvas found: ' + canvas.width + 'x' + canvas.height);
+      updateDebug('Canvas style: ' + canvas.style.cssText);
+    } else {
+      updateDebug('❌ No canvas found - renderer not created');
+    }
+  }
+
+  // Check canvas every 2 seconds
+  setInterval(checkCanvas, 2000);
+
+  // Initial canvas check
+  setTimeout(checkCanvas, 1000);
+</script>
+
+<!-- TypeScript Modules -->
+<script type="module">
+  console.log('🚀 Module script starting...');
+
+  try {
+    updateDebug('Importing TypeScript files directly...');
+
+    // Import TypeScript files directly (dev server should handle compilation)
+    const timestamp = Date.now(); // Cache busting
+    const possiblePaths = [
+      `./src/models/WormSimulation.ts?v=${timestamp}`,
+      `./src/WormSimulation.ts?v=${timestamp}`,
+      `./models/WormSimulation.ts?v=${timestamp}`,
+      `./WormSimulation.ts?v=${timestamp}`
+    ];
+
+    let success = false;
+
+    for (const path of possiblePaths) {
+      try {
+        updateDebug(`Trying TypeScript: ${path}`);
+        const module = await import(path);
+        updateDebug(`✅ SUCCESS with: ${path}`);
+        updateDebug(`Module loaded:`, Object.keys(module));
+        success = true;
+        break;
+      } catch (error) {
+        updateDebug(`❌ Failed: ${path} - ${error.message}`);
+      }
+    }
+
+    if (!success) {
+      updateDebug('❌ All TypeScript paths failed!');
+      updateDebug('📁 Current URL: ' + window.location.href);
+      updateDebug('📁 Please check file structure and dev server setup');
+    }
+
+  } catch (error) {
+    updateDebug('❌ Module script error: ' + error.message);
+    console.error('Module script error:', error);
+  }
+</script>
 </body>
 </html>
