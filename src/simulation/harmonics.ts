@@ -21,20 +21,35 @@ export interface HarmonicContext {
 
 export type Harmonic = (ctx: HarmonicContext) => number;
 
+/**
+ * Live-tuning gains for the debug panel. Multiplying instead of replacing
+ * keeps every formula intact; at the default of 1 the output is exactly the
+ * original. Mutated only by UI code — the simulation never writes here.
+ */
+export const harmonicGains = {
+	envelope: 1,
+	headThickening: 1,
+	wobble: 1,
+};
+
 /** Body envelope: |sin(π·i/L)|·W — zero at head and tail, W mid-body. */
 export const envelope: Harmonic = ({ i, length, baseWidth }) =>
-	Math.abs(Math.sin((Math.PI * i) / length)) * baseWidth;
+	harmonicGains.envelope *
+	Math.abs(Math.sin((Math.PI * i) / length)) *
+	baseWidth;
 
 /** Head thickening: (i + L/10)^(1.4 − i/L) — the bulbous face. */
 export const headThickening: Harmonic = ({ i, length }) =>
-	Math.pow(i + length / 10, 1.4 - i / length);
+	harmonicGains.headThickening * Math.pow(i + length / 10, 1.4 - i / length);
 
 /**
  * Traveling body wobble: |sin(5t − i/20)|·(v/60 + i/10).
  * Original: |sin((t_ms − 10i)/200)|·(v_frame + i/10).
  */
 export const wobble: Harmonic = ({ i, time, velocity }) =>
-	Math.abs(Math.sin(5 * time - i / 20)) * (velocity / 60 + i / 10);
+	harmonicGains.wobble *
+	Math.abs(Math.sin(5 * time - i / 20)) *
+	(velocity / 60 + i / 10);
 
 /** The original three-harmonic stack. */
 export const classicHarmonics: readonly Harmonic[] = [
