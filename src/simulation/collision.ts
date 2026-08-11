@@ -7,6 +7,12 @@ export interface CircleObstacle {
 	readonly radius: number;
 	/** Entity id owning this circle, for exclusion (e.g. a worm's own body). */
 	readonly ownerId: string;
+	/**
+	 * For capsule-chain obstacles: index of the segment along the owner's
+	 * spine. Lets a worm ignore the circles right behind its own head while
+	 * still avoiding the rest of its body.
+	 */
+	readonly segmentIndex?: number;
 }
 
 export interface Threat {
@@ -65,9 +71,10 @@ export function spineObstacles(
 	segments: readonly SpineSegment[],
 	ownerId: string
 ): CircleObstacle[] {
-	return segments.map((seg) => ({
+	return segments.map((seg, segmentIndex) => ({
 		center: seg.position,
 		radius: seg.halfWidth,
 		ownerId,
+		segmentIndex,
 	}));
 }
