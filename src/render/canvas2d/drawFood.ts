@@ -1,4 +1,4 @@
-import type { FoodSnapshot } from "../../simulation/snapshots";
+import type { FoodSnapshot } from "../../contracts/snapshots";
 import { foodColor } from "../palette";
 
 /** Pulsing concentric rings stroked with a black→type-color radial gradient. */

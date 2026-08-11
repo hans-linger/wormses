@@ -1,4 +1,4 @@
-import type { WormSnapshot } from "../../simulation/snapshots";
+import type { WormSnapshot } from "../../contracts/snapshots";
 import { wormColor } from "../palette";
 
 /**

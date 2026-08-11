@@ -1,4 +1,4 @@
-import { harmonicGains } from "../simulation/harmonics";
+import { harmonicGains } from "../systems/harmonics";
 
 export interface DebugStats {
 	readonly fps: number;

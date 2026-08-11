@@ -1,4 +1,4 @@
-import type { EggSnapshot } from "../../simulation/snapshots";
+import type { EggSnapshot } from "../../contracts/snapshots";
 
 /** Concentric wobbly polygons through the egg's random unit-circle dots. */
 export function drawEgg(ctx: CanvasRenderingContext2D, egg: EggSnapshot): void {

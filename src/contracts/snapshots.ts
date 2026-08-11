@@ -1,4 +1,4 @@
-import type { FoodKind } from "./Food";
+import type { FoodKind } from "./simulation";
 
 /**
  * Read-only view of the world for renderers. This is the 2D/3D seam: a worm

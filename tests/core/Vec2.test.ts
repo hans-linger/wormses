@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { Vec2 } from "./Vec2";
+﻿import { describe, expect, it } from "vitest";
+import { Vec2 } from "../../src/core/Vec2";
 
 describe("Vec2", () => {
 	it("adds and subtracts", () => {

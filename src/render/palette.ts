@@ -1,6 +1,6 @@
 import { Rng } from "../core/Rng";
 import { assertNever } from "../core/guards";
-import type { FoodKind } from "../simulation/Food";
+import type { FoodKind } from "../contracts/simulation";
 
 /**
  * Derive a worm's color from its colorSeed — a port of the original

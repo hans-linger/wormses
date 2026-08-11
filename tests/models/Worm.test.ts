@@ -1,14 +1,18 @@
-import { describe, expect, it } from "vitest";
-import { Rng } from "../core/Rng";
-import { Vec2 } from "../core/Vec2";
-import { angleDelta } from "../core/angles";
-import type { CircleObstacle } from "./collision";
-import { Worm, type WormContext } from "./Worm";
-import { defaultConfig } from "./WorldConfig";
+﻿import { describe, expect, it } from "vitest";
+import { Rng } from "../../src/core/Rng";
+import { Vec2 } from "../../src/core/Vec2";
+import { angleDelta } from "../../src/core/angles";
+import type { CircleObstacle } from "../../src/contracts/collision";
+import type { WormContext } from "../../src/contracts/simulation";
+import { Worm } from "../../src/models/Worm";
+import { ObstacleGrid, resolveContacts } from "../../src/systems/collision";
+import { defaultConfig } from "../../src/config/defaults";
 
 const config = defaultConfig();
 
 function makeContext(overrides: Partial<WormContext> = {}): WormContext {
+	const obstacles = overrides.obstacles ?? [];
+	const grid = new ObstacleGrid(obstacles, config.physics.gridCellSize);
 	return {
 		time: 0,
 		dt: 1 / 60,
@@ -17,8 +21,11 @@ function makeContext(overrides: Partial<WormContext> = {}): WormContext {
 		worldHeight: 600,
 		edgeMargin: 100,
 		food: [],
-		obstacles: [],
+		physics: config.physics,
+		resolve: (center, radius, accept) =>
+			resolveContacts(center, radius, grid, accept, config.physics),
 		...overrides,
+		obstacles,
 	};
 }
 
@@ -130,11 +137,12 @@ describe("Worm growth and death", () => {
 });
 
 describe("Worm avoidance", () => {
-	it("steers around an obstacle between it and the target", () => {
+	it("never penetrates an obstacle between it and the target", () => {
 		const obstacle: CircleObstacle = {
 			center: new Vec2(400, 300),
 			radius: 25,
 			ownerId: "egg_big",
+			kind: "egg",
 		};
 		const worm = makeWorm(new Vec2(200, 300), 0);
 		const food = [{ id: "f", position: new Vec2(600, 300), radius: 10 }];
@@ -149,8 +157,8 @@ describe("Worm avoidance", () => {
 			);
 			if (worm.headPosition.distanceTo(food[0]!.position) < 15) break;
 		}
-		// Head never plows through the middle of the obstacle.
-		expect(minClearance).toBeGreaterThan(obstacle.radius * 0.75);
+		// Hard contact resolution: the head stays outside the obstacle.
+		expect(minClearance).toBeGreaterThanOrEqual(obstacle.radius);
 	});
 
 	it("ignores its own near-head segments but not a straight-ahead foreign body", () => {
@@ -158,7 +166,7 @@ describe("Worm avoidance", () => {
 		const ownCircle: CircleObstacle = {
 			center: new Vec2(210, 300),
 			radius: 10,
-			ownerId: "worm_t",
+			ownerId: "worm_t", kind: "worm",
 			segmentIndex: 2,
 		};
 		// Own near-head circle alone: no steering deflection expected.
@@ -179,7 +187,7 @@ describe("Worm intellect", () => {
 		const behindTarget: CircleObstacle = {
 			center: new Vec2(700, 300),
 			radius: 40,
-			ownerId: "egg_far",
+			ownerId: "egg_far", kind: "egg",
 		};
 		const worm = makeWorm(new Vec2(390, 300), 0);
 		const before = worm.snapshot().segments[0]!.heading;
@@ -198,7 +206,7 @@ describe("Worm intellect", () => {
 		const blocker: CircleObstacle = {
 			center: new Vec2(600, 300),
 			radius: 60,
-			ownerId: "egg_block",
+			ownerId: "egg_block", kind: "egg",
 		};
 		const worm = makeWorm(new Vec2(250, 300), 0);
 		const rng = new Rng(3);
@@ -223,7 +231,7 @@ describe("Worm intellect", () => {
 		const blocker: CircleObstacle = {
 			center: new Vec2(600, 300),
 			radius: 60,
-			ownerId: "egg_block",
+			ownerId: "egg_block", kind: "egg",
 		};
 		const worm = makeWorm(new Vec2(250, 300), 0);
 		const rng = new Rng(3);

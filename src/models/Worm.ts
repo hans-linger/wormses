@@ -1,49 +1,25 @@
 import type { Rng } from "../core/Rng";
 import { Vec2 } from "../core/Vec2";
 import { turnToward } from "../core/angles";
-import {
-	findNearestThreat,
-	type CircleObstacle,
-	type Threat,
-} from "./collision";
-import type { FoodKind } from "./Food";
-import {
-	classicHarmonics,
-	widthAt,
-	type Harmonic,
-	type HarmonicContext,
-} from "./harmonics";
+import type {
+	CircleObstacle,
+	ContactResolver,
+	Threat,
+} from "../contracts/collision";
+import type { PhysicsConfig, WormConfig } from "../contracts/config";
+import type { Harmonic, HarmonicContext } from "../contracts/harmonics";
+import type {
+	FoodKind,
+	FoodTarget,
+	WormContext,
+	WormIntent,
+	WormState,
+} from "../contracts/simulation";
+import type { WormSnapshot } from "../contracts/snapshots";
+import { findNearestThreat, isStructuralNeighbor } from "../systems/collision";
+import { classicHarmonics, widthAt } from "../systems/harmonics";
+import { combineSeekAvoid, maxTurnRate } from "../systems/steering";
 import { Spine } from "./Spine";
-import { combineSeekAvoid, maxTurnRate } from "./steering";
-import type { WormSnapshot } from "./snapshots";
-import type { WormConfig } from "./WorldConfig";
-
-/** Minimal view of a food item the worm can target. */
-export interface FoodTarget {
-	readonly id: string;
-	readonly position: Vec2;
-	/** Base radius of the item — eating succeeds anywhere at its edge. */
-	readonly radius: number;
-}
-
-/** Everything a worm may observe during one tick — provided by the World. */
-export interface WormContext {
-	readonly time: number;
-	readonly dt: number;
-	readonly rng: Rng;
-	readonly worldWidth: number;
-	readonly worldHeight: number;
-	readonly edgeMargin: number;
-	readonly food: readonly FoodTarget[];
-	readonly obstacles: readonly CircleObstacle[];
-}
-
-/** Side effects a worm requests; the World applies them. */
-export type WormIntent =
-	| { readonly type: "eat"; readonly foodId: string }
-	| { readonly type: "expired" };
-
-export type WormState = "alive" | "dying";
 
 export class Worm {
 	state: WormState = "alive";
@@ -84,7 +60,8 @@ export class Worm {
 		this.heading = heading;
 		this.baseWidth = rng.range(config.baseWidthMin, config.baseWidthMax);
 		this.maxSpeed = config.maxSpeed;
-		this.maxLength = config.maxLengthBase * (1 + rng.float() * config.maxLengthSpread);
+		this.maxLength =
+			config.maxLengthBase * (1 + rng.float() * config.maxLengthSpread);
 		this.colorSeed = rng.float();
 		this.strokeWidth = 1 + rng.float() * 2;
 		this.targetLength = length;
@@ -107,7 +84,10 @@ export class Worm {
 				this.targetLength += value * this.config.growthLengthPerValue;
 				break;
 			case "width":
-				this.baseWidth += value * this.config.growthWidthPerValue;
+				this.baseWidth = Math.min(
+					this.config.baseWidthCap,
+					this.baseWidth + value * this.config.growthWidthPerValue
+				);
 				break;
 			case "power":
 				this.maxSpeed += value * this.config.growthSpeedPerValue;
@@ -160,10 +140,10 @@ export class Worm {
 		this.speed = this.dyingSpeed * fade;
 		const step = Vec2.fromAngle(this.heading, this.speed * ctx.dt);
 		this.spine.setHead(
-			this.clampToWorld(this.headPosition.add(step), ctx),
+			this.placeHead(ctx, this.headPosition.add(step)),
 			this.heading
 		);
-		this.updateSpine(ctx.time);
+		this.updateSpine(ctx);
 		return null;
 	}
 
@@ -213,6 +193,43 @@ export class Worm {
 		return picked;
 	}
 
+	/**
+	 * Contacts the head must resolve: every foreign body, plus its own spine
+	 * beyond the structurally-overlapping neighborhood. The food it is
+	 * currently eating is exempt — otherwise it would bounce off its meal.
+	 */
+	private placeHead(ctx: WormContext, position: Vec2): Vec2 {
+		const radius = this.spine.head.halfWidth;
+		const resolved = ctx.resolve(this.clampToWorld(position, ctx), radius, (o) =>
+			this.acceptContact(o, 0, radius, true, ctx)
+		);
+		// Walls win over contacts: a body may end up touching another rather
+		// than being pushed out of the world.
+		return this.clampToWorld(resolved, ctx);
+	}
+
+	private acceptContact(
+		obstacle: CircleObstacle,
+		segmentIndex: number,
+		radius: number,
+		isHead: boolean,
+		ctx: WormContext
+	): boolean {
+		if (obstacle.ownerId === this.id) {
+			return !isStructuralNeighbor(
+				segmentIndex,
+				obstacle,
+				radius,
+				this.config.spine,
+				ctx.physics
+			);
+		}
+		if (isHead && obstacle.kind === "food") {
+			return obstacle.ownerId !== this.targetFoodId;
+		}
+		return true;
+	}
+
 	private advance(ctx: WormContext, seekPoint: Vec2, hasTarget: boolean): void {
 		const cfg = this.config;
 		const head = this.headPosition;
@@ -230,7 +247,8 @@ export class Worm {
 			Math.max(0.1, 0.5 * (proximity / m));
 		if (head.x < m) speed *= edgeFactor(head.x);
 		if (head.y < m) speed *= edgeFactor(head.y);
-		if (head.x > ctx.worldWidth - m) speed *= edgeFactor(ctx.worldWidth - head.x);
+		if (head.x > ctx.worldWidth - m)
+			speed *= edgeFactor(ctx.worldWidth - head.x);
 		if (head.y > ctx.worldHeight - m)
 			speed *= edgeFactor(ctx.worldHeight - head.y);
 
@@ -239,8 +257,18 @@ export class Worm {
 		this.speed = speed;
 
 		// Steering: seek the target, pushed off course by the nearest threat.
+		// Clearance is the *widest* part of the body, not the head — the body
+		// follows wherever the head goes, so a gap the head fits through but
+		// the belly does not is not a gap at all. The feeler reaches farther
+		// the fatter and faster the worm is, since turning radius scales with
+		// width and it must begin the turn before it is committed.
 		const headHalfWidth = this.spine.head.halfWidth;
-		let threat = this.findThreat(ctx, headHalfWidth);
+		const bodyRadius = this.bodyRadius();
+		const lookAhead = Math.max(
+			cfg.avoidLookAhead,
+			bodyRadius * cfg.avoidRadiusFactor + this.speed * cfg.avoidReactionTime
+		);
+		let threat = this.findThreat(ctx, bodyRadius, lookAhead);
 
 		// Goal awareness: an obstacle farther away than the target itself is
 		// irrelevant — we will have eaten before reaching it.
@@ -265,12 +293,7 @@ export class Worm {
 		}
 
 		const seekHeading = seekPoint.sub(head).angle();
-		const desired = combineSeekAvoid(
-			seekHeading,
-			threat,
-			cfg.avoidLookAhead,
-			avoidStrength
-		);
+		const desired = combineSeekAvoid(seekHeading, threat, lookAhead, avoidStrength);
 
 		// Width-limited turning: radius never below one body radius.
 		const turnCap =
@@ -283,7 +306,7 @@ export class Worm {
 
 		if (dist > 1) {
 			const step = Vec2.fromAngle(this.heading, this.speed * ctx.dt);
-			this.spine.setHead(this.clampToWorld(head.add(step), ctx), this.heading);
+			this.spine.setHead(this.placeHead(ctx, head.add(step)), this.heading);
 		}
 
 		// Grow toward the fractional target length.
@@ -293,27 +316,44 @@ export class Worm {
 		}
 
 		this.opacity = 0.8 + Math.abs(Math.sin(ctx.time / 0.3)) * 0.2;
-		this.updateSpine(ctx.time);
+		this.updateSpine(ctx);
+	}
+
+	/** Half-width of the thickest segment — the clearance the path must give. */
+	private bodyRadius(): number {
+		let max = 0;
+		for (const seg of this.spine.segments) {
+			max = Math.max(max, seg.halfWidth);
+		}
+		return max;
 	}
 
 	private findThreat(
 		ctx: WormContext,
-		clearance: number
+		clearance: number,
+		lookAhead: number
 	): Threat | null {
 		return findNearestThreat(
 			this.headPosition,
 			Vec2.fromAngle(this.heading),
-			this.config.avoidLookAhead,
+			lookAhead,
 			clearance,
 			ctx.obstacles,
-			(o) =>
-				o.ownerId === this.id &&
-				(o.segmentIndex ?? 0) < this.config.selfAvoidHeadExclusion
+			(o) => {
+				if (o.ownerId === this.id) {
+					return (o.segmentIndex ?? 0) >= this.config.selfAvoidHeadExclusion;
+				}
+				// Food is light scenery that gets shoved aside on contact, so
+				// there is nothing to steer around — and steering around it in
+				// a field this dense would leave a worm unable to reach any
+				// meal at all. Only solid bodies deflect a worm.
+				return o.kind !== "food";
+			}
 		);
 	}
 
 	/** Evaluate the harmonics into per-segment half-widths, then follow. */
-	private updateSpine(time: number): void {
+	private updateSpine(ctx: WormContext): void {
 		const segments = this.spine.segments;
 		for (let i = 0; i < segments.length; i++) {
 			const seg = segments[i];
@@ -323,11 +363,68 @@ export class Worm {
 				length: segments.length,
 				baseWidth: this.baseWidth,
 				velocity: this.speed,
-				time,
+				time: ctx.time,
 			};
 			seg.halfWidth = widthAt(this.harmonics, context);
 		}
-		this.spine.follow();
+		this.spine.follow((position, radius, segmentIndex) =>
+			ctx.resolve(position, radius, (o) =>
+				this.acceptContact(o, segmentIndex, radius, false, ctx)
+			)
+		);
+	}
+
+	/**
+	 * Post-update settle pass against *live* positions. The resolution during
+	 * update() can only see start-of-tick geometry, so two worms moving
+	 * toward each other would each resolve against stale data and still end
+	 * up overlapping. Running the same constraint projection again — head
+	 * separation, then a contact-aware follow — restores link lengths and
+	 * bend limits while pushing bodies apart.
+	 */
+	settle(
+		resolve: ContactResolver,
+		physics: PhysicsConfig,
+		bounds: { readonly width: number; readonly height: number }
+	): void {
+		const head = this.spine.head;
+		const headRadius = head.halfWidth;
+		const resolved = resolve(head.position, headRadius, (o) =>
+			this.acceptSettle(o, 0, headRadius, physics)
+		);
+		this.spine.setHead(
+			new Vec2(
+				Math.min(bounds.width - 2, Math.max(2, resolved.x)),
+				Math.min(bounds.height - 2, Math.max(2, resolved.y))
+			),
+			head.heading
+		);
+		this.spine.follow((position, radius, segmentIndex) =>
+			resolve(position, radius, (o) =>
+				this.acceptSettle(o, segmentIndex, radius, physics)
+			)
+		);
+	}
+
+	private acceptSettle(
+		obstacle: CircleObstacle,
+		segmentIndex: number,
+		radius: number,
+		physics: PhysicsConfig
+	): boolean {
+		if (obstacle.ownerId === this.id) {
+			return !isStructuralNeighbor(
+				segmentIndex,
+				obstacle,
+				radius,
+				this.config.spine,
+				physics
+			);
+		}
+		if (segmentIndex === 0 && obstacle.kind === "food") {
+			return obstacle.ownerId !== this.targetFoodId;
+		}
+		return true;
 	}
 
 	snapshot(): WormSnapshot {

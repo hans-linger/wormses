@@ -1,9 +1,8 @@
 import type { Rng } from "../core/Rng";
 import type { Vec2 } from "../core/Vec2";
-import type { FoodSnapshot } from "./snapshots";
-import type { FoodConfig } from "./WorldConfig";
-
-export type FoodKind = "length" | "width" | "power";
+import type { FoodConfig } from "../contracts/config";
+import type { FoodKind } from "../contracts/simulation";
+import type { FoodSnapshot } from "../contracts/snapshots";
 
 export const FOOD_KINDS: readonly FoodKind[] = ["length", "width", "power"];
 
@@ -18,12 +17,16 @@ export class Food {
 	radius: number;
 	private rings: number[] = [];
 
+	/** Mutable: worms are far heavier and shove food aside as they pass. */
+	position: Vec2;
+
 	constructor(
 		readonly id: string,
-		readonly position: Vec2,
+		position: Vec2,
 		rng: Rng,
 		private readonly config: FoodConfig
 	) {
+		this.position = position;
 		this.kind = rng.pick(FOOD_KINDS);
 		this.value = rng.range(config.valueMin, config.valueMax);
 		this.radius = this.value;

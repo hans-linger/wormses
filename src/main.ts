@@ -2,10 +2,10 @@ import { DebugPanel } from "./app/DebugPanel";
 import { bindInput } from "./app/input";
 import { Loop } from "./app/Loop";
 import { Vec2 } from "./core/Vec2";
+import { defaultConfig } from "./config/defaults";
+import type { WormSnapshot } from "./contracts/snapshots";
+import { World } from "./models/World";
 import { Canvas2DRenderer } from "./render/canvas2d/Canvas2DRenderer";
-import type { WormSnapshot } from "./simulation/snapshots";
-import { World } from "./simulation/World";
-import { defaultConfig } from "./simulation/WorldConfig";
 
 const canvas = document.getElementById("world");
 if (!(canvas instanceof HTMLCanvasElement)) {

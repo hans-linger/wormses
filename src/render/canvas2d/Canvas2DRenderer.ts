@@ -1,5 +1,5 @@
-import type { WorldSnapshot } from "../../simulation/snapshots";
-import type { Renderer } from "../Renderer";
+import type { Renderer } from "../../contracts/Renderer";
+import type { WorldSnapshot } from "../../contracts/snapshots";
 import { drawEgg } from "./drawEgg";
 import { drawFood } from "./drawFood";
 import { drawWorm } from "./drawWorm";

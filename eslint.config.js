@@ -22,9 +22,27 @@ export default tseslint.config(
 		},
 	},
 	{
-		files: ["**/*.test.ts"],
+		files: ["tests/**/*.ts"],
 		rules: {
 			"@typescript-eslint/no-non-null-assertion": "off",
+		},
+	},
+	{
+		// The simulation must stay headless: no DOM, no rendering, no app.
+		files: ["src/{core,contracts,models,systems,config}/**/*.ts"],
+		rules: {
+			"no-restricted-imports": [
+				"error",
+				{
+					patterns: [
+						{
+							group: ["**/render/**", "**/app/**"],
+							message:
+								"The simulation layer must not depend on rendering or app code.",
+						},
+					],
+				},
+			],
 		},
 	}
 );

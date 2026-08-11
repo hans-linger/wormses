@@ -1,12 +1,12 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
+import type { HarmonicContext } from "../../src/contracts/harmonics";
 import {
 	classicHarmonics,
 	envelope,
 	headThickening,
 	widthAt,
 	wobble,
-	type HarmonicContext,
-} from "./harmonics";
+} from "../../src/systems/harmonics";
 
 function ctx(overrides: Partial<HarmonicContext> = {}): HarmonicContext {
 	return {

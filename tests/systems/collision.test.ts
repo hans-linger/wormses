@@ -1,14 +1,19 @@
-import { describe, expect, it } from "vitest";
-import { Vec2 } from "../core/Vec2";
+﻿import { describe, expect, it } from "vitest";
+import { Vec2 } from "../../src/core/Vec2";
+import type { CircleObstacle } from "../../src/contracts/collision";
 import {
 	findNearestThreat,
 	spineObstacles,
-	type CircleObstacle,
-} from "./collision";
-import { Spine } from "./Spine";
+} from "../../src/systems/collision";
+import { Spine } from "../../src/models/Spine";
 
-function circle(x: number, y: number, radius: number, ownerId = "o"): CircleObstacle {
-	return { center: new Vec2(x, y), radius, ownerId };
+function circle(
+	x: number,
+	y: number,
+	radius: number,
+	ownerId = "o"
+): CircleObstacle {
+	return { center: new Vec2(x, y), radius, ownerId, kind: "egg" };
 }
 
 const origin = new Vec2(0, 0);
@@ -49,14 +54,14 @@ describe("findNearestThreat", () => {
 		expect(threat!.obstacle.ownerId).toBe("near");
 	});
 
-	it("honors the exclusion filter", () => {
+	it("honors the accept filter", () => {
 		const threat = findNearestThreat(
 			origin,
 			east,
 			100,
 			2,
 			[circle(40, 0, 5, "self")],
-			(o) => o.ownerId === "self"
+			(o) => o.ownerId !== "self"
 		);
 		expect(threat).toBeNull();
 	});

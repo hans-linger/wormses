@@ -1,4 +1,4 @@
-import type { WorldSnapshot } from "../simulation/snapshots";
+import type { WorldSnapshot } from "./snapshots";
 
 /**
  * The rendering seam. A renderer consumes read-only world snapshots and may

@@ -1,34 +1,25 @@
 import { Vec2 } from "../core/Vec2";
 import { angleDelta, normalizeAngle } from "../core/angles";
+import type { SpineParams } from "../contracts/config";
+import type { SpineSegment } from "../contracts/simulation";
 
-export interface SpineParams {
-	/** Rest distance between consecutive segments. */
-	readonly spacing: number;
-	/** Allowed relative stretch/squash of a link: [1−b, 1+b]·spacing. */
-	readonly bendTolerance: number;
-	/**
-	 * Self-intersection guard: minimum turning radius is
-	 * halfWidth · widthRadiusFactor, so fat bodies must curve wider.
-	 */
-	readonly widthRadiusFactor: number;
-	/** Absolute per-joint bend cap in radians, even for zero-width spines. */
-	readonly maxBendCap: number;
-}
-
-export interface SpineSegment {
-	position: Vec2;
-	/** Forward direction of this segment (toward the head). */
-	heading: number;
-	/** Current half-width at this segment, set from the harmonics each tick. */
-	halfWidth: number;
-}
+/** Pushes a body circle out of whatever it must not overlap. */
+export type SegmentResolver = (
+	position: Vec2,
+	radius: number,
+	segmentIndex: number
+) => Vec2;
 
 /**
  * Follow-the-leader segment chain (port of `_old/.../wormLine.js` kinematics)
- * with a width-derived bend clamp: the angle between consecutive links is
- * limited to spacing / (halfWidth · widthRadiusFactor), which keeps the local
- * curvature radius at least one body-radius and prevents the body from
- * overlapping itself in tight turns.
+ * with two additions:
+ *
+ * - a width-derived bend clamp — the angle between consecutive links is
+ *   limited to spacing / (halfWidth · widthRadiusFactor), keeping the local
+ *   curvature radius at least one body radius so the body cannot fold onto
+ *   itself in tight turns;
+ * - optional contact resolution — collisions bend the link direction, never
+ *   its length, so the chain stays coherent while flowing around obstacles.
  */
 export class Spine {
 	readonly segments: SpineSegment[] = [];
@@ -72,7 +63,7 @@ export class Spine {
 	}
 
 	/** Pull every segment after its predecessor, clamping stretch and bend. */
-	follow(): void {
+	follow(resolve?: SegmentResolver): void {
 		const { spacing, bendTolerance } = this.params;
 		const minDist = spacing * (1 - bendTolerance);
 		const maxDist = spacing * (1 + bendTolerance);
@@ -96,9 +87,36 @@ export class Spine {
 			dist -= 0.5 * Math.abs(dist - spacing);
 			dist = Math.max(dist, minDist);
 
+			const maxBend = this.maxBendAt(i);
+
+			// Contact resolution. The pushed-out position is kept verbatim
+			// whenever it already satisfies the link constraints — forcing
+			// every segment back onto an exact distance would discard the
+			// separation and let bodies sit inside each other. Only when the
+			// push violates a constraint is it projected back onto it.
+			if (resolve !== undefined) {
+				const candidate = prev.position.add(Vec2.fromAngle(linkAngle, dist));
+				const pushed = resolve(candidate, seg.halfWidth, i);
+				if (pushed !== candidate) {
+					const bent = pushed.sub(prev.position);
+					const pushedDist = bent.length();
+					const pushedAngle = pushedDist > 1e-6 ? bent.angle() : linkAngle;
+					const withinBand = pushedDist >= minDist && pushedDist <= maxDist;
+					const withinBend =
+						Math.abs(angleDelta(prevLinkAngle, pushedAngle)) <= maxBend;
+					if (withinBand && withinBend) {
+						seg.position = pushed;
+						seg.heading = normalizeAngle(pushedAngle + Math.PI);
+						prevLinkAngle = pushedAngle;
+						continue;
+					}
+					linkAngle = pushedAngle;
+					dist = Math.min(maxDist, Math.max(minDist, pushedDist));
+				}
+			}
+
 			// Bend clamp: link may deviate from the previous link's direction
 			// by at most maxBendAt(i).
-			const maxBend = this.maxBendAt(i);
 			const bend = angleDelta(prevLinkAngle, linkAngle);
 			if (Math.abs(bend) > maxBend) {
 				linkAngle = normalizeAngle(prevLinkAngle + Math.sign(bend) * maxBend);

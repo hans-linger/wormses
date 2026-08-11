@@ -23,11 +23,33 @@ the signature bristly look. Harmonics are composable functions
 ([src/simulation/harmonics.ts](src/simulation/harmonics.ts)) and can be
 scaled live from the debug panel (press `H`).
 
-Self-intersection is prevented at two levels, both derived from the width
-profile: the steering turn rate is capped so the head's turning radius never
-drops below the local body radius, and each spine joint clamps its bend to
-`spacing / (halfWidth · widthRadiusFactor)`. Worms avoid each other and eggs
-via feeler-based steering over capsule-chain obstacles.
+## Collision mechanics
+
+Worm bodies are capsule chains — one circle per spine segment, radius equal
+to that segment's harmonic half-width. Everything else (food, eggs) is a
+circle. Three layers keep bodies apart:
+
+1. **Self-intersection.** The steering turn rate is capped so the head's
+   turning radius never drops below the local body radius, and each spine
+   joint clamps its bend to `spacing / (halfWidth · widthRadiusFactor)`. A
+   worm physically cannot fold onto itself.
+2. **Predictive avoidance.** A forward feeler ([collision.ts](src/systems/collision.ts))
+   finds the nearest solid body in the path. Clearance is the *widest* part
+   of the body, not the head — the tail goes wherever the head went, so a gap
+   the head fits through but the belly does not is no gap at all. The feeler
+   reaches farther the fatter and faster the worm is, since turning radius
+   grows with width. Worms commit to a side rather than dithering.
+3. **Hard contact resolution.** Position-based correction over a uniform
+   spatial hash, run again after every worm has moved (per-worm resolution
+   only sees start-of-tick geometry, so two worms closing on each other would
+   both act on stale data). Corrections are capped per iteration: without
+   that cap, deeply overlapping bodies feed each other ever-larger pushes and
+   fling each other into the walls.
+
+Food and eggs are **light scenery that yields**: a mature worm is wider than
+the gaps between food items, so no amount of steering could keep a crowded
+field collision-free. Worms shove them aside instead, and nothing ever
+spawns inside a body.
 
 ## Ecosystem
 
@@ -38,12 +60,22 @@ its stats in the debug panel.
 
 ## Architecture
 
+Files are split by domain, and tests live outside the source tree.
+
 ```
-src/core        pure math: Vec2, angles, seedable Rng
-src/simulation  headless world — no DOM imports, deterministic per seed
-src/render      Renderer interface + Canvas2D implementation
+src/contracts   types only — config, snapshots, simulation ports, Renderer
+src/core        pure math: Vec2, angles, seedable Rng, typeguards
+src/models      domain entities: World, Worm, Spine, Egg, Food
+src/systems     stateless algorithms: harmonics, collision, steering
+src/config      default tuning values
+src/render      Renderer implementations (canvas2d) + palette
 src/app         fixed-timestep loop, input, debug panel
+tests/          mirrors core/models/systems
 ```
+
+`core`, `contracts`, `models`, `systems` and `config` are the headless
+simulation: deterministic per seed, no DOM, and an ESLint rule forbids them
+from importing anything under `render/` or `app/`.
 
 The simulation emits read-only snapshots (spine points + radius profile);
 renderers interpret them. A future 3D renderer implements the same

@@ -1,5 +1,5 @@
 import { normalizeAngle } from "../core/angles";
-import type { Threat } from "./collision";
+import type { Threat } from "../contracts/collision";
 
 /**
  * Width-limited turn rate (self-intersection guard at the steering level):

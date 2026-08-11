@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
-import { Rng } from "../core/Rng";
-import { Vec2 } from "../core/Vec2";
-import { Egg } from "./Egg";
-import { Food, FOOD_KINDS } from "./Food";
-import { defaultConfig } from "./WorldConfig";
+﻿import { describe, expect, it } from "vitest";
+import { Rng } from "../../src/core/Rng";
+import { Vec2 } from "../../src/core/Vec2";
+import { Egg } from "../../src/models/Egg";
+import { Food, FOOD_KINDS } from "../../src/models/Food";
+import { defaultConfig } from "../../src/config/defaults";
 
 const config = defaultConfig();
 

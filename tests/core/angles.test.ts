@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { angleDelta, normalizeAngle, turnToward } from "./angles";
+﻿import { describe, expect, it } from "vitest";
+import { angleDelta, normalizeAngle, turnToward } from "../../src/core/angles";
 
 describe("normalizeAngle", () => {
 	it("keeps angles already in (-PI, PI]", () => {

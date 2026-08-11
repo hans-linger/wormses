@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { Rng } from "./Rng";
+﻿import { describe, expect, it } from "vitest";
+import { Rng } from "../../src/core/Rng";
 
 describe("Rng", () => {
 	it("is reproducible for the same seed", () => {

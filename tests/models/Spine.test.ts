@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { Vec2 } from "../core/Vec2";
-import { angleDelta } from "../core/angles";
-import { Spine } from "./Spine";
+﻿import { describe, expect, it } from "vitest";
+import { Vec2 } from "../../src/core/Vec2";
+import { angleDelta } from "../../src/core/angles";
+import { Spine } from "../../src/models/Spine";
 
 const params = {
 	spacing: 5,
@@ -106,6 +106,50 @@ describe("Spine bend clamp (self-intersection guard)", () => {
 		expect(maxObservedBend(spine)).toBeLessThanOrEqual(
 			params.maxBendCap + 1e-9
 		);
+	});
+});
+
+describe("Spine contact resolution", () => {
+	it("bends links around obstacles without changing link length", () => {
+		const spine = new Spine(new Vec2(0, 0), 0, 8, params);
+		for (const seg of spine.segments) seg.halfWidth = 2;
+		// Resolver shoves every segment 3px up; link lengths must survive.
+		spine.follow((position) => position.add(new Vec2(0, 3)));
+		for (let i = 1; i < spine.segments.length; i++) {
+			const d = spine.segments[i]!.position.distanceTo(
+				spine.segments[i - 1]!.position
+			);
+			expect(d).toBeGreaterThanOrEqual(params.spacing * 0.6 - 1e-9);
+			expect(d).toBeLessThanOrEqual(params.spacing * 1.4 + 1e-9);
+		}
+	});
+
+	it("deflects the body toward the pushed side", () => {
+		const spine = new Spine(new Vec2(0, 0), 0, 6, params);
+		for (const seg of spine.segments) seg.halfWidth = 2;
+		spine.follow((position) => position.add(new Vec2(0, 2)));
+		// Every trailing segment ends up above the original straight line.
+		expect(spine.segments[1]!.position.y).toBeGreaterThan(0);
+	});
+
+	it("still honors the bend clamp while resolving contacts", () => {
+		const spine = new Spine(new Vec2(0, 0), 0, 10, params);
+		for (const seg of spine.segments) seg.halfWidth = 10;
+		const maxBend = Math.min(
+			params.maxBendCap,
+			params.spacing / (10 * params.widthRadiusFactor)
+		);
+		// A violent sideways shove must not fold the body.
+		spine.follow((position) => position.add(new Vec2(0, 50)));
+		for (let i = 2; i < spine.segments.length; i++) {
+			const a = spine.segments[i - 1]!.position
+				.sub(spine.segments[i - 2]!.position)
+				.angle();
+			const b = spine.segments[i]!.position
+				.sub(spine.segments[i - 1]!.position)
+				.angle();
+			expect(Math.abs(angleDelta(a, b))).toBeLessThanOrEqual(maxBend + 1e-9);
+		}
 	});
 });
 

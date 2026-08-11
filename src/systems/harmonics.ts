@@ -1,3 +1,5 @@
+import type { Harmonic, HarmonicContext } from "../contracts/harmonics";
+
 /**
  * The shape harmonics — the heart of the project.
  *
@@ -6,20 +8,6 @@
  * from `_old/src/modules/index/v/worms/worm.js` (fY), with time rescaled from
  * milliseconds to seconds and velocity from px/frame (60fps) to px/second.
  */
-export interface HarmonicContext {
-	/** Segment index along the spine (arc position), head = 0. */
-	readonly i: number;
-	/** Total segment count. */
-	readonly length: number;
-	/** Base body width parameter of the worm. */
-	readonly baseWidth: number;
-	/** Current speed in px/s. */
-	readonly velocity: number;
-	/** Simulation time in seconds. */
-	readonly time: number;
-}
-
-export type Harmonic = (ctx: HarmonicContext) => number;
 
 /**
  * Live-tuning gains for the debug panel. Multiplying instead of replacing

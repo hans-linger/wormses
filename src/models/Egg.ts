@@ -1,9 +1,8 @@
 import type { Rng } from "../core/Rng";
 import type { Vec2 } from "../core/Vec2";
-import type { EggSnapshot } from "./snapshots";
-import type { EggConfig } from "./WorldConfig";
-
-export type EggUpdateResult = "none" | "hatch";
+import type { EggConfig } from "../contracts/config";
+import type { EggUpdateResult } from "../contracts/simulation";
+import type { EggSnapshot } from "../contracts/snapshots";
 
 /**
  * An egg: concentric wobbly polygons that slowly grow, then pop into a worm.
@@ -17,13 +16,17 @@ export class Egg {
 	private state: "incubating" | "hatching" = "incubating";
 	private hatchStart = 0;
 
+	/** Mutable: a passing worm nudges the egg aside rather than clipping it. */
+	position: Vec2;
+
 	constructor(
 		readonly id: string,
-		readonly position: Vec2,
+		position: Vec2,
 		bornAt: number,
 		rng: Rng,
 		private readonly config: EggConfig
 	) {
+		this.position = position;
 		this.radius = rng.range(config.initialRadiusMin, config.initialRadiusMax);
 		this.hatchAt =
 			bornAt + config.hatchTimeMin + rng.float() * config.hatchTimeSpread;

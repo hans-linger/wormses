@@ -1,8 +1,8 @@
-import { describe, expect, it } from "vitest";
-import { Vec2 } from "../core/Vec2";
-import { angleDelta } from "../core/angles";
-import { findNearestThreat } from "./collision";
-import { combineSeekAvoid, maxTurnRate } from "./steering";
+﻿import { describe, expect, it } from "vitest";
+import { Vec2 } from "../../src/core/Vec2";
+import { angleDelta } from "../../src/core/angles";
+import { findNearestThreat } from "../../src/systems/collision";
+import { combineSeekAvoid, maxTurnRate } from "../../src/systems/steering";
 
 describe("maxTurnRate", () => {
 	it("limits angular velocity so turning radius >= min radius", () => {
@@ -32,7 +32,7 @@ describe("combineSeekAvoid", () => {
 			east,
 			100,
 			2,
-			[{ center: new Vec2(40, 3), radius: 5, ownerId: "o" }]
+			[{ center: new Vec2(40, 3), radius: 5, ownerId: "o", kind: "egg" }]
 		);
 		const result = combineSeekAvoid(0, threat, 100, 1);
 		expect(angleDelta(0, result)).toBeLessThan(0);
@@ -44,7 +44,7 @@ describe("combineSeekAvoid", () => {
 			east,
 			100,
 			2,
-			[{ center: new Vec2(40, -3), radius: 5, ownerId: "o" }]
+			[{ center: new Vec2(40, -3), radius: 5, ownerId: "o", kind: "egg" }]
 		);
 		const result = combineSeekAvoid(0, threat, 100, 1);
 		expect(angleDelta(0, result)).toBeGreaterThan(0);
@@ -52,10 +52,10 @@ describe("combineSeekAvoid", () => {
 
 	it("steers harder for nearer threats", () => {
 		const near = findNearestThreat(new Vec2(0, 0), east, 100, 2, [
-			{ center: new Vec2(20, 3), radius: 5, ownerId: "o" },
+			{ center: new Vec2(20, 3), radius: 5, ownerId: "o", kind: "egg" },
 		]);
 		const far = findNearestThreat(new Vec2(0, 0), east, 100, 2, [
-			{ center: new Vec2(90, 3), radius: 5, ownerId: "o" },
+			{ center: new Vec2(90, 3), radius: 5, ownerId: "o", kind: "egg" },
 		]);
 		const nearPush = Math.abs(angleDelta(0, combineSeekAvoid(0, near, 100, 1)));
 		const farPush = Math.abs(angleDelta(0, combineSeekAvoid(0, far, 100, 1)));
