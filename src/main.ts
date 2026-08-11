@@ -61,11 +61,13 @@ new DebugPanel(() => {
 		worms: world.wormCount,
 		eggs: world.eggCount,
 		food: world.foodCount,
+		eaten: world.stats.eaten,
 		hovered:
 			worm === null
 				? null
-				: `worm ${worm.id}: L${String(worm.length)} ` +
-					`W${worm.baseWidth.toFixed(1)} v${worm.maxSpeed.toFixed(0)}`,
+				: `${worm.id}: L${String(worm.length)} ` +
+					`W${worm.baseWidth.toFixed(1)} v${worm.maxSpeed.toFixed(0)}\n` +
+					`→ ${worm.targetId ?? "wandering"}`,
 	};
 });
 

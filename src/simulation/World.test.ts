@@ -63,7 +63,8 @@ describe("World 60-second smoke run", () => {
 				const a = Math.atan2(p1.y - p0.y, p1.x - p0.x);
 				const b = Math.atan2(p2.y - p1.y, p2.x - p1.x);
 				const bend = Math.abs(angleDelta(a, b));
-				const localRadius = p1.halfWidth * cfg.widthRadiusFactor;
+				// The clamp for the link ending at p2 uses p2's half-width.
+				const localRadius = p2.halfWidth * cfg.widthRadiusFactor;
 				const allowed =
 					localRadius > 0
 						? Math.min(cfg.maxBendCap, cfg.spacing / localRadius)
@@ -73,13 +74,13 @@ describe("World 60-second smoke run", () => {
 		}
 	});
 
-	it("keeps worms roughly inside the world", () => {
+	it("keeps every worm head strictly inside the world", () => {
 		for (const worm of snapshot.worms) {
 			const head = worm.segments[0]!;
-			expect(head.x).toBeGreaterThan(-50);
-			expect(head.x).toBeLessThan(850);
-			expect(head.y).toBeGreaterThan(-50);
-			expect(head.y).toBeLessThan(650);
+			expect(head.x).toBeGreaterThanOrEqual(0);
+			expect(head.x).toBeLessThanOrEqual(800);
+			expect(head.y).toBeGreaterThanOrEqual(0);
+			expect(head.y).toBeLessThanOrEqual(600);
 		}
 	});
 });

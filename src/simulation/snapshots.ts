@@ -26,6 +26,8 @@ export interface WormSnapshot {
 	readonly length: number;
 	readonly baseWidth: number;
 	readonly maxSpeed: number;
+	/** Food item currently being chased, null while wandering. */
+	readonly targetId: string | null;
 }
 
 export interface EggSnapshot {

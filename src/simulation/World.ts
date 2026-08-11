@@ -14,6 +14,8 @@ import type { WorldConfig } from "./WorldConfig";
  */
 export class World {
 	time = 0;
+	/** Lifetime counters, for the debug panel and behavior diagnostics. */
+	readonly stats = { eaten: 0, hatched: 0, died: 0, abandoned: 0 };
 	private readonly rng: Rng;
 	private readonly worms = new Map<string, Worm>();
 	private readonly eggs = new Map<string, Egg>();
@@ -119,6 +121,7 @@ export class World {
 		const foodTargets: FoodTarget[] = [...this.food.values()].map((f) => ({
 			id: f.id,
 			position: f.position,
+			radius: f.value,
 		}));
 
 		for (const worm of [...this.worms.values()]) {
@@ -140,12 +143,22 @@ export class World {
 						worm.applyFood(eaten.kind, eaten.value);
 						this.food.delete(eaten.id);
 						this.spawnFood();
+						this.stats.eaten++;
 					}
 					break;
 				}
 				case "expired": {
 					this.worms.delete(worm.id);
-					this.spawnEgg(worm.headPosition);
+					this.stats.died++;
+					// Eggs always land in the interior, even if the worm died
+					// pressed against a wall.
+					const m = this.config.food.spawnMargin;
+					this.spawnEgg(
+						new Vec2(
+							Math.min(this.config.width - m, Math.max(m, worm.headPosition.x)),
+							Math.min(this.config.height - m, Math.max(m, worm.headPosition.y))
+						)
+					);
 					break;
 				}
 			}
@@ -155,6 +168,7 @@ export class World {
 			if (egg.update(this.time, dt) === "hatch") {
 				this.eggs.delete(egg.id);
 				this.spawnWorm(egg.position);
+				this.stats.hatched++;
 			}
 		}
 	}

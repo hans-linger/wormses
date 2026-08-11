@@ -6,6 +6,7 @@ export interface DebugStats {
 	readonly worms: number;
 	readonly eggs: number;
 	readonly food: number;
+	readonly eaten: number;
 	readonly hovered: string | null;
 }
 
@@ -70,7 +71,8 @@ export class DebugPanel {
 		const s = this.getStats();
 		this.statsEl.textContent =
 			`fps ${s.fps.toFixed(0).padStart(3)}  ${s.paused ? "PAUSED" : "live"}\n` +
-			`worms ${String(s.worms)}  eggs ${String(s.eggs)}  food ${String(s.food)}` +
+			`worms ${String(s.worms)}  eggs ${String(s.eggs)}  food ${String(s.food)}\n` +
+			`eaten ${String(s.eaten)}` +
 			(s.hovered === null ? "" : `\n${s.hovered}`);
 	}
 }

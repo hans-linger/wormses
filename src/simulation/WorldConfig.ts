@@ -41,6 +41,14 @@ export interface WormConfig {
 	readonly avoidStrength: number;
 	/** Own spine circles with index below this are exempt from avoidance. */
 	readonly selfAvoidHeadExclusion: number;
+	/** Avoidance strength multiplier when the threat is the worm's own body. */
+	readonly ownBodyAvoidFactor: number;
+	/** Seconds without progress toward the target before abandoning it. */
+	readonly stuckTimeout: number;
+	/** Seconds an abandoned food item stays blacklisted for this worm. */
+	readonly retargetCooldown: number;
+	/** Minimum px of approach that counts as progress. */
+	readonly minProgress: number;
 }
 
 export interface EggConfig {
@@ -121,6 +129,10 @@ export function defaultConfig(
 			avoidLookAhead: 90,
 			avoidStrength: 1.2,
 			selfAvoidHeadExclusion: 8,
+			ownBodyAvoidFactor: 0.5,
+			stuckTimeout: 3.5,
+			retargetCooldown: 6,
+			minProgress: 3,
 		},
 		egg: {
 			hatchTimeMin: 3,

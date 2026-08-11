@@ -35,7 +35,7 @@ describe("Worm seeking", () => {
 		for (let step = 0; step < 240; step++) {
 			time += 1 / 60;
 			worm.update(
-				makeContext({ time, food: [{ id: "f1", position: foodPos }] })
+				makeContext({ time, food: [{ id: "f1", position: foodPos, radius: 10 }] })
 			);
 		}
 		expect(worm.headPosition.distanceTo(foodPos)).toBeLessThan(start / 2);
@@ -45,7 +45,17 @@ describe("Worm seeking", () => {
 		const worm = makeWorm(new Vec2(400, 300));
 		const intent = worm.update(
 			makeContext({
-				food: [{ id: "f1", position: new Vec2(405, 300) }],
+				food: [{ id: "f1", position: new Vec2(405, 300), radius: 10 }],
+			})
+		);
+		expect(intent).toEqual({ type: "eat", foodId: "f1" });
+	});
+
+	it("eats large food at its edge (eat radius scales with food size)", () => {
+		const worm = makeWorm(new Vec2(400, 300));
+		const intent = worm.update(
+			makeContext({
+				food: [{ id: "f1", position: new Vec2(418, 300), radius: 20 }],
 			})
 		);
 		expect(intent).toEqual({ type: "eat", foodId: "f1" });
@@ -54,7 +64,7 @@ describe("Worm seeking", () => {
 	it("caps heading change per tick at turnRateCap·dt", () => {
 		const worm = makeWorm(new Vec2(400, 300), 0);
 		// Food directly behind: the worm wants a U-turn.
-		const food = [{ id: "f1", position: new Vec2(100, 300) }];
+		const food = [{ id: "f1", position: new Vec2(100, 300), radius: 10 }];
 		let prevHeading = worm.snapshot().segments[0]!.heading;
 		let time = 0;
 		for (let step = 0; step < 60; step++) {
@@ -79,7 +89,10 @@ describe("Worm growth and death", () => {
 		for (let step = 0; step < 10; step++) {
 			time += 1 / 60;
 			worm.update(
-				makeContext({ time, food: [{ id: "f", position: new Vec2(700, 500) }] })
+				makeContext({
+					time,
+					food: [{ id: "f", position: new Vec2(700, 500), radius: 10 }],
+				})
 			);
 		}
 		expect(worm.snapshot().length).toBe(before + 10);
@@ -98,7 +111,7 @@ describe("Worm growth and death", () => {
 		const worm = makeWorm();
 		// +200 segments — beyond the worst-case maxLength of ~148
 		worm.applyFood("length", 400);
-		const food = [{ id: "f", position: new Vec2(700, 500) }];
+		const food = [{ id: "f", position: new Vec2(700, 500), radius: 10 }];
 		let time = 0;
 		worm.update(makeContext({ time, food }));
 		expect(worm.state).toBe("dying");
@@ -124,7 +137,7 @@ describe("Worm avoidance", () => {
 			ownerId: "egg_big",
 		};
 		const worm = makeWorm(new Vec2(200, 300), 0);
-		const food = [{ id: "f", position: new Vec2(600, 300) }];
+		const food = [{ id: "f", position: new Vec2(600, 300), radius: 10 }];
 		let minClearance = Infinity;
 		let time = 0;
 		for (let step = 0; step < 60 * 8; step++) {
@@ -152,11 +165,82 @@ describe("Worm avoidance", () => {
 		const before = worm.snapshot().segments[0]!.heading;
 		worm.update(
 			makeContext({
-				food: [{ id: "f", position: new Vec2(600, 300) }],
+				food: [{ id: "f", position: new Vec2(600, 300), radius: 10 }],
 				obstacles: [ownCircle],
 			})
 		);
 		const after = worm.snapshot().segments[0]!.heading;
 		expect(Math.abs(angleDelta(before, after))).toBeLessThan(1e-6);
+	});
+});
+
+describe("Worm intellect", () => {
+	it("ignores obstacles that lie beyond its target", () => {
+		const behindTarget: CircleObstacle = {
+			center: new Vec2(700, 300),
+			radius: 40,
+			ownerId: "egg_far",
+		};
+		const worm = makeWorm(new Vec2(390, 300), 0);
+		const before = worm.snapshot().segments[0]!.heading;
+		worm.update(
+			makeContext({
+				food: [{ id: "f", position: new Vec2(500, 300), radius: 10 }],
+				obstacles: [behindTarget],
+			})
+		);
+		const after = worm.snapshot().segments[0]!.heading;
+		expect(Math.abs(angleDelta(before, after))).toBeLessThan(1e-6);
+	});
+
+	it("abandons an unreachable target after the stuck timeout", () => {
+		// Food buried inside a big obstacle: eating is impossible.
+		const blocker: CircleObstacle = {
+			center: new Vec2(600, 300),
+			radius: 60,
+			ownerId: "egg_block",
+		};
+		const worm = makeWorm(new Vec2(250, 300), 0);
+		const rng = new Rng(3);
+		const food = [{ id: "f1", position: new Vec2(600, 300), radius: 10 }];
+		let sawTarget = false;
+		let abandoned = false;
+		let time = 0;
+		for (let step = 0; step < 60 * 15; step++) {
+			time += 1 / 60;
+			worm.update(makeContext({ time, rng, food, obstacles: [blocker] }));
+			if (worm.targetId === "f1") sawTarget = true;
+			if (sawTarget && worm.targetId === null) {
+				abandoned = true;
+				break;
+			}
+		}
+		expect(sawTarget).toBe(true);
+		expect(abandoned).toBe(true);
+	});
+
+	it("switches to another food item after abandoning a blocked one", () => {
+		const blocker: CircleObstacle = {
+			center: new Vec2(600, 300),
+			radius: 60,
+			ownerId: "egg_block",
+		};
+		const worm = makeWorm(new Vec2(250, 300), 0);
+		const rng = new Rng(3);
+		const blocked = { id: "f1", position: new Vec2(600, 300), radius: 10 };
+		const clear = { id: "f2", position: new Vec2(250, 150), radius: 10 };
+		let time = 0;
+		let ate: string | null = null;
+		for (let step = 0; step < 60 * 25; step++) {
+			time += 1 / 60;
+			const intent = worm.update(
+				makeContext({ time, rng, food: [blocked, clear], obstacles: [blocker] })
+			);
+			if (intent?.type === "eat") {
+				ate = intent.foodId;
+				break;
+			}
+		}
+		expect(ate).toBe("f2");
 	});
 });

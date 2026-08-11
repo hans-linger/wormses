@@ -22,6 +22,8 @@ import type { WormConfig } from "./WorldConfig";
 export interface FoodTarget {
 	readonly id: string;
 	readonly position: Vec2;
+	/** Base radius of the item — eating succeeds anywhere at its edge. */
+	readonly radius: number;
 }
 
 /** Everything a worm may observe during one tick — provided by the World. */
@@ -61,6 +63,12 @@ export class Worm {
 	private opacity = 1;
 	private readonly harmonics: readonly Harmonic[];
 
+	// Intellect: progress memory, per-food frustration, avoidance commitment.
+	private bestTargetDist = Infinity;
+	private lastProgressAt = 0;
+	private readonly foodBlacklist = new Map<string, number>();
+	private avoidSideMemory: { ownerId: string; side: 1 | -1 } | null = null;
+
 	constructor(
 		readonly id: string,
 		position: Vec2,
@@ -85,6 +93,11 @@ export class Worm {
 
 	get headPosition(): Vec2 {
 		return this.spine.head.position;
+	}
+
+	/** Current food target id, null while wandering. Exposed for debug/tests. */
+	get targetId(): string | null {
+		return this.targetFoodId;
 	}
 
 	/** Applied by the World when this worm's eat intent succeeds. */
@@ -112,17 +125,22 @@ export class Worm {
 
 		let seekPoint: Vec2;
 		if (target === null) {
-			// No food anywhere: wander toward the world center.
+			// No (reachable) food: wander toward the world center.
 			seekPoint = new Vec2(ctx.worldWidth / 2, ctx.worldHeight / 2);
 		} else {
 			seekPoint = target.position;
-			if (head.distanceTo(seekPoint) < this.config.eatRadius) {
+			const dist = head.distanceTo(seekPoint);
+			// Eating succeeds anywhere at the item's edge, so the final
+			// approach never needs surgical precision.
+			if (dist < Math.max(this.config.eatRadius, target.radius)) {
 				this.targetFoodId = null;
+				this.bestTargetDist = Infinity;
 				return { type: "eat", foodId: target.id };
 			}
+			this.trackProgress(target, dist, ctx.time);
 		}
 
-		this.advance(ctx, seekPoint);
+		this.advance(ctx, seekPoint, target !== null);
 
 		if (this.targetLength > this.maxLength) {
 			this.state = "dying";
@@ -141,26 +159,61 @@ export class Worm {
 		this.opacity = Math.max(0, fade);
 		this.speed = this.dyingSpeed * fade;
 		const step = Vec2.fromAngle(this.heading, this.speed * ctx.dt);
-		this.spine.setHead(this.headPosition.add(step), this.heading);
+		this.spine.setHead(
+			this.clampToWorld(this.headPosition.add(step), ctx),
+			this.heading
+		);
 		this.updateSpine(ctx.time);
 		return null;
 	}
 
+	/** The head may never leave the world — dying or not. */
+	private clampToWorld(position: Vec2, ctx: WormContext): Vec2 {
+		return new Vec2(
+			Math.min(ctx.worldWidth - 2, Math.max(2, position.x)),
+			Math.min(ctx.worldHeight - 2, Math.max(2, position.y))
+		);
+	}
+
+	/**
+	 * Frustration memory: abandon a target we are not getting closer to
+	 * (orbiting around an obstacle, blocked path, ...) and blacklist it for
+	 * a while so another target — or a wander phase — takes over.
+	 */
+	private trackProgress(target: FoodTarget, dist: number, time: number): void {
+		if (dist < this.bestTargetDist - this.config.minProgress) {
+			this.bestTargetDist = dist;
+			this.lastProgressAt = time;
+			return;
+		}
+		if (time - this.lastProgressAt > this.config.stuckTimeout) {
+			this.foodBlacklist.set(target.id, time + this.config.retargetCooldown);
+			this.targetFoodId = null;
+			this.bestTargetDist = Infinity;
+		}
+	}
+
 	private acquireTarget(ctx: WormContext): FoodTarget | null {
+		for (const [id, expiry] of this.foodBlacklist) {
+			if (expiry <= ctx.time) this.foodBlacklist.delete(id);
+		}
 		if (this.targetFoodId !== null) {
 			const existing = ctx.food.find((f) => f.id === this.targetFoodId);
 			if (existing !== undefined) return existing;
 		}
-		if (ctx.food.length === 0) {
+		const candidates = ctx.food.filter((f) => !this.foodBlacklist.has(f.id));
+		if (candidates.length === 0) {
 			this.targetFoodId = null;
 			return null;
 		}
-		const picked = ctx.rng.pick(ctx.food);
+		const picked = ctx.rng.pick(candidates);
 		this.targetFoodId = picked.id;
+		this.bestTargetDist = Infinity;
+		this.lastProgressAt = ctx.time;
 		return picked;
 	}
 
-	private advance(ctx: WormContext, seekPoint: Vec2): void {
+	private advance(ctx: WormContext, seekPoint: Vec2, hasTarget: boolean): void {
 		const cfg = this.config;
 		const head = this.headPosition;
 		const dist = head.distanceTo(seekPoint);
@@ -170,14 +223,16 @@ export class Worm {
 			Math.min(this.maxSpeed, dist * cfg.speedGainPerDistance) *
 			(1 + Math.sin(ctx.time * cfg.surgeFrequency));
 
-		// Edge slowdown (original behavior: fades to zero at the wall).
+		// Edge slowdown, floored so a worm at the wall can always crawl back
+		// (the original's fade-to-zero could freeze a worm forever).
 		const m = ctx.edgeMargin;
-		if (head.x < m) speed *= Math.max(0, 0.5 * (head.x / m));
-		if (head.y < m) speed *= Math.max(0, 0.5 * (head.y / m));
-		if (head.x > ctx.worldWidth - m)
-			speed *= Math.max(0, 0.5 * ((ctx.worldWidth - head.x) / m));
+		const edgeFactor = (proximity: number): number =>
+			Math.max(0.1, 0.5 * (proximity / m));
+		if (head.x < m) speed *= edgeFactor(head.x);
+		if (head.y < m) speed *= edgeFactor(head.y);
+		if (head.x > ctx.worldWidth - m) speed *= edgeFactor(ctx.worldWidth - head.x);
 		if (head.y > ctx.worldHeight - m)
-			speed *= Math.max(0, 0.5 * ((ctx.worldHeight - head.y) / m));
+			speed *= edgeFactor(ctx.worldHeight - head.y);
 
 		// Careful approach (the original computed this but never applied it).
 		if (dist < cfg.approachSlowRadius) speed *= cfg.approachSlowFactor;
@@ -185,13 +240,36 @@ export class Worm {
 
 		// Steering: seek the target, pushed off course by the nearest threat.
 		const headHalfWidth = this.spine.head.halfWidth;
-		const threat = this.findThreat(ctx, headHalfWidth);
+		let threat = this.findThreat(ctx, headHalfWidth);
+
+		// Goal awareness: an obstacle farther away than the target itself is
+		// irrelevant — we will have eaten before reaching it.
+		if (threat !== null && hasTarget && threat.distance > dist) {
+			threat = null;
+		}
+
+		// Commitment: keep passing a given obstacle on the same side instead
+		// of dithering left/right on successive frames.
+		let avoidStrength = cfg.avoidStrength;
+		if (threat === null) {
+			this.avoidSideMemory = null;
+		} else {
+			const ownerId = threat.obstacle.ownerId;
+			if (this.avoidSideMemory?.ownerId === ownerId) {
+				threat = { ...threat, side: this.avoidSideMemory.side };
+			} else {
+				this.avoidSideMemory = { ownerId, side: threat.side };
+			}
+			// The worm's own body is a soft constraint, not a wall.
+			if (ownerId === this.id) avoidStrength *= cfg.ownBodyAvoidFactor;
+		}
+
 		const seekHeading = seekPoint.sub(head).angle();
 		const desired = combineSeekAvoid(
 			seekHeading,
 			threat,
 			cfg.avoidLookAhead,
-			cfg.avoidStrength
+			avoidStrength
 		);
 
 		// Width-limited turning: radius never below one body radius.
@@ -205,7 +283,7 @@ export class Worm {
 
 		if (dist > 1) {
 			const step = Vec2.fromAngle(this.heading, this.speed * ctx.dt);
-			this.spine.setHead(head.add(step), this.heading);
+			this.spine.setHead(this.clampToWorld(head.add(step), ctx), this.heading);
 		}
 
 		// Grow toward the fractional target length.
@@ -269,6 +347,7 @@ export class Worm {
 			length: this.spine.segments.length,
 			baseWidth: this.baseWidth,
 			maxSpeed: this.maxSpeed,
+			targetId: this.targetFoodId,
 		};
 	}
 }
