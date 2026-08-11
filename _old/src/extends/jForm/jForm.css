@@ -1,0 +1,505 @@
+.jf-field { margin-bottom: 18px; display: block; }
+.jf-field .title {
+	cursor: pointer;
+}
+.jf-field .title label {
+	display: inline-block;
+	color: #000;
+	font-size: 14px;
+	font-weight: bold;
+	cursor: pointer;
+}
+.jf-field .title i {
+	margin-left: 4px;
+	display: inline-block;
+	width: 13px;
+	height: 13px;
+	vertical-align: middle;
+	background-image: url('/i/jForm.png');
+	background-repeat: no-repeat;
+	background-position: -171px 0;
+}
+.jf-field.active .title i {
+	background-position: -158px 0;
+}
+.jf-form.simple .jf-field .title i { display: none; }
+.jf-field input { outline: none; }
+.jf-field>dt {
+	margin-bottom: 10px;
+}
+.jf-field.error dt { color: #993300; }
+.jf-fieldset { border: 1px solid #ccc; margin: 5px 0; padding: 5px; }
+.jf-fieldset>.jf-field { }
+.jf-fieldset>.title { position: relative; top: -1em; margin-bottom: -1em; background: white; padding: 0 4px; font-weight: bold; }
+
+.jf-field dd {
+	display: none;
+	position: relative;
+}
+.jf-form.simple .jf-field dd { display: block; }
+
+.jf-button::-moz-focus-inner {
+	border: 0;
+}
+a.jf-button {
+	color: #fff;
+	text-align: center;
+	display: inline-block;
+	padding-left: 0;
+	padding-right: 0;
+}
+.jf-button,
+.jf-file .wrapper {
+	text-decoration: none;
+	padding: 9px 18px;
+	cursor: pointer;
+	background: #444;
+	background-image: -webkit-gradient(
+		linear,
+		left top,
+		left bottom,
+		color-stop(0, #595959),
+		color-stop(1, #050505)
+	);
+	background-image: -o-linear-gradient(bottom, #595959 0%, #050505 100%);
+	background-image: -moz-linear-gradient(bottom, #595959 0%, #050505 100%);
+	background-image: -webkit-linear-gradient(bottom, #595959 0%, #050505 100%);
+	background-image: -ms-linear-gradient(bottom, #595959 0%, #050505 100%);
+	background-image: linear-gradient(to bottom, #595959 0%, #050505 100%);
+	margin: 0;
+	border-radius: 5px;
+	border: 0;
+	font-size: 14px;
+	font-weight: bold;
+	color: #fff;
+	font-family: Arial, Verdana, sans-serif;
+}
+.jf-button.loading {
+	background: #88a8cc;
+	cursor: default;
+}
+.jf-button.toggled,
+.jf-file .wrapper.toggled {
+	background: #CFCFCF;
+	background-image: -webkit-gradient(
+		linear,
+		left bottom,
+		left top,
+		color-stop(0, #595959),
+		color-stop(0.9, #1C1C1C),
+		color-stop(1, #000000)
+	);
+	background-image: -o-linear-gradient(top, #595959 0%, #1C1C1C 90%, #000000 100%);
+	background-image: -moz-linear-gradient(top, #595959 0%, #1C1C1C 90%, #000000 100%);
+	background-image: -webkit-linear-gradient(top, #595959 0%, #1C1C1C 90%, #000000 100%);
+	background-image: -ms-linear-gradient(top, #595959 0%, #1C1C1C 90%, #000000 100%);
+	background-image: linear-gradient(to top, #595959 0%, #1C1C1C 90%, #000000 100%);
+}
+.jf-button s {
+	text-decoration: none;
+	color: #fff;
+	font-weight: normal;
+	/*color: transparent;*/
+	/*text-shadow: 0 0 0 #fff, 0 -1px 0 #666 ;*/
+}
+.jf-button.disabled,
+.jf-button[disabled],
+.jf-file .wrapper.disabled {
+	cursor: default;
+	background: #8b8b8b;
+	color: #ddd;
+	text-shadow: 0 -1px #666;
+}
+
+.jf-checkboxGroup dd .option {
+	position: relative;
+	vertical-align: middle;
+	margin-right: 10px;
+	white-space: nowrap;
+}
+.jf-checkboxGroup dd .option input {
+	position: relative;
+	z-index: 2;
+	margin-right: 2px;
+	vertical-align: middle;
+}
+.jf-checkboxGroup dd .option label {
+	vertical-align: middle;
+}
+.jf-checkboxGroup dd .option.disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+.jf-checkboxGroup dd .option.disabled i.ico {
+	cursor: default;
+}
+.jf-checkboxGroup dd .option i.ico b {
+	width: 13px;
+	height: 11px;
+	background: url('/i/jForm.png') -64px 0 no-repeat;
+	display: none;
+	position: absolute;
+	left: 3px;
+	top: 3px;
+}
+.jf-checkboxGroup .filters {
+	margin-bottom: 12px;
+}
+.jf-checkboxGroup .filters .filter {
+	display: inline-block;
+	margin-right: 5px;
+	border-radius: 5px;
+	padding: 5px 10px;
+	font-size: 12px;
+	color: #919191;
+	text-decoration: underline;
+	cursor: pointer;
+}
+.jf-checkboxGroup .filters .filter.active {
+	background: #559dda;
+	background-image: linear-gradient(top, rgb(102,180,229) 0%, rgb(63,127,204) 100%);
+	background-image: -o-linear-gradient(top, rgb(102,180,229) 0%, rgb(63,127,204) 100%);
+	background-image: -moz-linear-gradient(top, rgb(102,180,229) 0%, rgb(63,127,204) 100%);
+	background-image: -webkit-linear-gradient(top, rgb(102,180,229) 0%, rgb(63,127,204) 100%);
+	background-image: -ms-linear-gradient(top, rgb(102,180,229) 0%, rgb(63,127,204) 100%);
+
+	background-image: -webkit-gradient(
+		linear,
+		left top,
+		left bottom,
+		color-stop(0, rgb(102,180,229)),
+		color-stop(1, rgb(63,127,204))
+	);
+
+	color: #fff;
+	text-decoration: none;
+	cursor: default;
+}
+
+
+.jf-radio dd .option {
+	position: relative;
+	vertical-align: middle;
+	padding-left: 23px;
+	margin-right: 10px;
+}
+.jf-radio dd .option input {
+	position: relative;
+	z-index: 2;
+	margin-right: 8px;
+	visibility: hidden;
+}
+.jf-radio dd .option i.ico {
+	position: absolute;
+	left: -1px;
+	top: -3px;
+	width: 21px;
+	height: 22px;
+	display: block;
+	padding: 0;
+	margin: 0 5px 0 0;
+	cursor: pointer;
+	background: transparent url('/i/jForm.png') -117px 0 no-repeat;
+}
+.jf-radio dd .checked i.ico {
+	background-position: -96px 0;
+}
+
+.jf-button.error {
+	box-shadow: 0 0 2px red;
+}
+.jf-wysiwyg {
+	min-width: 300px;
+}
+.jf-wysiwyg .wysiwyg-content {  }
+
+.jf-fileframe { position: absolute; left: -100px; width: 1px; height: 1px; top: -100px; }
+.jf-file .wrapper {
+	cursor: pointer;
+	display: inline-block;
+	overflow: hidden;
+	position: relative;
+	vertical-align: middle;
+	margin-right: 10px;
+}
+.jf-file .wrapper i {
+	font-style: normal;
+}
+.jf-file input {
+	cursor: pointer;
+	height: 100%;
+	position: absolute;
+	right: 0;
+	top: 0;
+	opacity: 0.01;
+}
+.jf-file dt { padding-top: 17px; }
+.jf-file .button {
+	width: 32px;
+	height: 32px;
+	background: transparent url('/i/jForm.png') 0 0 no-repeat;
+	display: inline-block;
+}
+.jf-file .wrapper:hover .button {
+	background-position: -32px 0;
+}
+.jf-file .jf-input-container { vertical-align: middle; display: inline-block; }
+
+.jf-avatar {
+}
+.jf-avatar .avatar-img {
+	display: inline-block;
+	width: 128px;
+	height: 128px;
+	background: #ccc;
+	background-position: 50% 50%;
+	background-repeat: no-repeat;
+	vertical-align: top;
+	margin-right: 18px;
+}
+
+.jf-choiceGroup {
+	margin-bottom: 18px;
+}
+.jf-choiceGroup .container {
+	border-radius: 5px;
+}
+.jf-choiceGroup .single {
+	padding: 10px 15px;
+	cursor: pointer;
+	margin: 0;
+	background: none;
+	display: inline-block;
+	border-radius: 5px;
+}
+.jf-choiceGroup .single>span {
+	border-bottom: 1px dashed #acacac;
+}
+.jf-choiceGroup .single.checked {
+	background: #000;
+	color: #fff;
+}
+.jf-choiceGroup .single.checked>span {
+	border-bottom: 0;
+}
+.jf-choiceGroup .single.next-checked {
+	border-right: 1px solid #f8f8f8;
+}
+.jf-choiceGroup .single.checked.next-checked {
+	border-right-color: rgba(0,0,0,0.2);
+}
+.jf-choiceGroup .single.checked.prev-checked {
+	border-left-color: rgba(117,213,246,0.2);
+}
+
+.jf-slider dl {
+	margin-bottom: 20px;
+}
+.jf-slider dt {
+	position: relative;
+	max-width: 200px;
+}
+.jf-slider dd {
+	position: relative;
+	padding-top: 0px;
+	vertical-align: top;
+}
+.jf-slider .jq-slider .slider-scale {
+	background: none;
+
+}
+.jf-slider .jq-slider .slider {
+	background: url('/i/jForm.png') 0 0 no-repeat;
+	width: 10px;
+	height: 22px;
+}
+.jf-slider .jq-slider .slider_0 {
+	background-position: -138px 0;
+	margin-left: -8px;
+}
+.jf-slider .jq-slider .slider_1 {
+	background-position: -148px 0;
+	margin-right: -8px;
+}
+.jf-slider .values {
+	position: absolute;
+	top: 1px;
+	right: 0;
+	text-align: right;
+	font-size: 11px;
+	color: #919191;
+	display: inline-block;
+
+}
+.jf-slider .values .divide {
+	text-decoration: none;
+	margin: 0 0.3em;
+}
+
+/** visibility **/
+.jf-visibility {
+	display: inline-block;
+	margin-left: 18px;
+	width: 200px;
+	right: -218px;
+	position: absolute;
+	top: 5px;
+	cursor: pointer;
+}
+.jf-visibility-value {
+	height: 14px;
+	width: 14px;
+	border-radius: 7px;
+	display: inline-block;
+	margin-right: 9px;
+	background: #e0e0e0;
+	vertical-align: middle;
+}
+.jf-visibility.jf-visibility-value-all .jf-visibility-all,
+.jf-visibility.jf-visibility-value-hidden .jf-visibility-hidden,
+.jf-visibility.jf-visibility-value-restricted .jf-visibility-restricted,
+.jf-visibility-value:hover {
+	height: 18px;
+	width: 18px;
+	border-radius: 9px;
+	margin-right: 7px;
+	margin-left: -2px;
+}
+.jf-visibility.jf-visibility-value-all .jf-visibility-all { background: #3c5; }
+.jf-visibility.jf-visibility-value-restricted .jf-visibility-restricted { background: #ed2; }
+.jf-visibility.jf-visibility-value-hidden .jf-visibility-hidden { background: #f31; }
+
+
+.jf-form .jf-field>dt {
+	margin-bottom: 5px;
+}
+.jf-form .jf-file>dt {
+	padding-top: 0;
+}
+.jf-form input[type=text],
+.jf-form input[type=password],
+.jf-form input[type=number],
+.jf-form textarea {
+	width: 100%;
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	padding: 5px 10px;
+	border-radius: 5px;
+	background: #f0f0f0;
+	border-color: #ccc #ddd #eee;
+	border-width: 1px;
+	border-style: solid;
+	font-size: 12px;
+}
+.jf-form input[type=text]:focus,
+.jf-form input[type=password]:focus,
+.jf-form input[type=number]:focus,
+.jf-form select:focus,
+.jf-form textarea:focus {
+	background: #fff;
+}
+
+.jf-text .switch {
+	position: absolute;
+	right: 12px;
+	top: 50%;
+	margin-top: -5px;
+	display: inline-block;
+	width: 18px;
+	height: 10px;
+	background: url('/i/jForm.png') -64px -22px no-repeat;
+	cursor: pointer;
+	opacity: 0.6;
+}
+.jf-text .switch:hover {
+	opacity: 1;
+}
+.jf-text .switch.switched {
+	background-position: -84px -22px;
+}
+
+.jf-field.jf-date .jf-day {
+	margin-right: 18px;
+}
+.jf-field.jf-date .jf-day {
+	width: 70px;
+}
+.jf-field.jf-date .jf-month {
+	width: 200px;
+}
+.jf-field.jf-date .jf-select-container {
+	margin-right: 18px;
+}
+ .jf-field.jf-date .jf-year {
+	width: 120px;
+}
+
+/**
+select
+**/
+.jf-select-container {
+	display: inline-block;
+	position: relative;
+}
+.jf-select-container select,
+.jf-select-container .w-select {
+	display: inline-block;
+	padding: 5px 10px;
+	border-radius: 5px;
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	background: #f0f0f0;
+	font-size: 12px;
+	font-family: Arial, sans-serif;
+}
+.jf-select-container select {
+
+}
+.jf-select-container .w-select {
+	border-color: #ccc #ddd #eee;
+	border-width: 1px;
+	border-style: solid;
+	position: absolute;
+	display: block;
+	width: 100%;
+	top: 0;
+	min-height: 26px;
+}
+.jf-select-container.focused .w-select {
+	background: #fff;
+	color: #000;
+}
+.jf-select-container .w-select i {
+	width: 12px;
+	height: 7px;
+	background: transparent url('/i/icons/common.png') -24px -14px no-repeat;
+	position: absolute;
+	right: 4px;
+	top: 9px;
+}
+.jf-select-container.focused .w-select i {
+	background-position: -24px -23px;
+}
+.jf-select-container select {
+	opacity: 0;
+	border: 0;
+	border-radius: 0;
+}
+.jf-form .jf-multilevelSelect .jf-select-input {
+	margin-bottom: 9px;
+}
+.jf-form .jf-multilevelSelect .jf-select-wrapper {
+	margin-bottom: 4px;
+}
+.jf-form .jf-multilevelSelect .jf-select-input:last-child {
+	margin-bottom: 0;
+}
+
+.jf-checkbox input {
+	margin-right: 0.6em;
+}
+.jf-checkbox input, .jf-checkbox label { vertical-align: middle; }
+
+.jf-text.placeholder dt { display: none; }

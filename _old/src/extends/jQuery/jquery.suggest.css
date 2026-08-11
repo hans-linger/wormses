@@ -1,0 +1,22 @@
+.jq-suggest-items { position: absolute; left: 0; top: 1.4em; border: 1px solid #c0c0c0; background: #fff; cursor: default; }
+.jq-suggest-items .selected { background: #c0c0d0; }
+.jq-suggest-items li { padding: 0.1em 0; }
+.jq-suggest-container .node {
+	border: 1px solid #9ae;
+	background: #e0efff;
+	border-radius: 10px;
+	padding: 3px 6px;
+	margin-right: 8px;
+	font-style: normal;
+	color: #333;
+	vertical-align: middle;
+}
+.jq-suggest-container .node b {
+	width: 10px;
+	height: 10px;
+	cursor: pointer;
+	display: inline-block;
+	background: url('/js/libs/extends/jQuery/suggest-closer.png') no-repeat;
+	margin-left: 3px;
+	margin-bottom: -1px;
+}

@@ -1,0 +1,221 @@
+<jform>
+	<script type="text/jform" id="form">
+		<form id="jForm_<%= id %>" method="<%= typeof method == 'undefined' ? 'post' : method %>" class="jf-form <%= typeof type == 'undefined' ? 'simple' : type %>" action="<%= url %>">
+			<div class="jf-fields">
+
+			</div>
+
+		</form>
+	</script>
+
+	<script type="text/jform" id="submit">
+		<div class="jf-buttons">
+			<button class="jf-button jf-submit"><s><%= submitTitle %></s></button>
+		</div>
+	</script>
+
+	<script type="text/jform" id="text">
+		<dl class="jf-field jf-text<%= placeholder ? ' placeholder' : '' %>">
+			<dt><span class="title"><label for="<%= uid %>"><%= title %></label><i></i></span></dt>
+			<dd><input id="<%= uid %>" <%= placeholder ? 'placeholder="' + placeholder + '"' : '' %> type="text" name="<%= name %>" value="<%= value ? value : '' %>" <%= (typeof autocomplete != 'undefined' && !autocomplete ) ? 'autocomplete="off"' : '' %>  /></dd>
+		</dl>
+	</script>
+	<script type="text/jform" id="password">
+		<dl class="jf-field jf-text<%= placeholder ? ' placeholder' : '' %><%= switchable ? ' switchable' : '' %>">
+			<dt><span class="title"><label for="<%= uid %>"><%= title %></label><i></i></span></dt>
+			<dd><input id="<%= uid %>" <%= placeholder ? 'placeholder="' + placeholder + '"' : '' %> type="password" name="<%= name %>" value="<%= value ? value : '' %>" <%= (typeof autocomplete != 'undefined' && !autocomplete ) ? 'autocomplete="off"' : '' %>  /><% if ( switchable ) {%><i class="switch"></i><%}%></dd>
+		</dl>
+	</script>
+
+	<script type="text/jform" id="textarea">
+		<dl class="jf-field jf-textarea">
+			<dt><span class="title"><label for="<%= uid %>"><%= title %></label><i></i></span></dt>
+			<dd><textarea id="<%= uid %>" name="<%= name %>"><%= value ? value : '' %></textarea></dd>
+		</dl>
+	</script>
+	<script type="text/jForm" id="textarea-wysiwyg">
+		<dl class="jf-field jf-wysiwyg">
+			<% if ( title ) { %>
+			<dt><span class="title"><label for="<%= uid %>"><%= title %></label><i></i></span></dt>
+			<% } %>
+			<dd class="jf-wysiwyg wysiwyg-container">
+				<div class="wysiwyg-icons"></div>
+				<div class="b-postContainer wysiwyg-content"></div>
+			</dd>
+		</dl>
+	</script>
+
+	<script type="text/jform" id="number">
+		<dl class="jf-field jf-number">
+			<dt><span class="title"><label for="<%= uid %>"><%= title %></label><i></i></span></dt>
+			<dd><input id="<%= uid %>" type="text" <%= max ? ' max="' + max + '"' : '' %> <%= min ? ' min="' + min + '"' : '' %> name="<%= name %>" value="<%= value ? value : '' %>" <%= (typeof autocomplete != 'undefined' && !autocomplete ) ? 'autocomplete="off"' : '' %> /></dd>
+		</dl>
+	</script>
+
+	<script type="text/jForm" id="fieldset">
+		<div class="jf-fieldset" id="<%= uid %>">
+			<span class="title"><%= title %></span>
+		</div>
+	</script>
+
+	<script type="text/jForm" id="checkbox">
+		<dl class="jf-field jf-checkbox">
+			<dd>
+				<input id="<%= uid %>" type="checkbox" <%= checked ? ' checked="checked"' : '' %> name="<%= name %>"></input><label for="<%= uid %>"><%= title %></label>
+			</dd>
+		</dl>
+	</script>
+
+	<script type="text/jForm" id="checkbox-group">
+		<dl class="jf-field jf-checkboxGroup">
+			<dt><span class="title"><label for="<%= uid %>"><%= title %></label><i></i></span></dt>
+			<dd>
+				<% if ( typeof filters != 'undefined' ) { %>
+				<div class="filters">
+					<% _.each( filters, function(x,i) { %>
+						<span class="filter <%= x.active ? ' active' : '' %>" data-type="<%=i%>"><%= x.title %></span>
+					<% }) %>
+				</div>
+				<% } %>
+				<% _.each( options, function (x, i) { %>
+				<span class="option<%= values.indexOf( checkboxValues[i] ) != -1 ? ' checked' : ''%>" data-value="<%= checkboxValues[i] %>">
+					<i class="ico" id="<%= uid + '_' + checkboxValues[i] + '_' %>"><b></b></i>
+					<label for="<%= uid + '_' + checkboxValues[i] %>"><%= options[i] %></label>
+				</span>
+				<% }) %>
+			</dd>
+		</dl>
+	</script>
+
+	<script type="text/jForm" id="choice-group">
+		<dl class="jf-field jf-choiceGroup">
+			<dt><span class="title"><label for="<%= uid %>"><%= title %></label><i></i></span></dt>
+			<dd>
+				<div class="container">
+					<% _.each( options, function (x, i) { %><span class="single<%= values.indexOf( choiceValues[i] ) != -1 ? ' checked' : ''%>" id="<%= uid + '_' + choiceValues[i] %>" name="<%= name %>" data-value="<%= choiceValues[i] %>"><span><%= options[i] %></span></span><% }) %>
+				</div>
+			</dd>
+		</dl>
+	</script>
+
+	<script type="text/jForm" id="slider">
+		<dl class="jf-field jf-slider">
+			<dt><span class="title"><label for="<%= uid %>"><%= title %></label><i></i></span><span class="values"></span></dt>
+			<dd>
+			</dd>
+		</dl>
+	</script>
+
+	<script type="text/jForm" id="radio">
+		<dl class="jf-field jf-radio">
+			<dt><span class="title"><label for="<%= uid %>"><%= title %></label><i></i></span></dt>
+			<dd>
+				<% _.each( options, function (x, i) { %>
+				<span class="option<%= value == radioValues[i] ? ' checked' : ''%>" data-value="<%= radioValues[i] %>">
+					<i class="ico" id="<%= uid + '_' + radioValues[i] + '_' %>"></i>
+					<label for="<%= uid + '_' + radioValues[i] %>"><%= options[i] %></label>
+				</span>
+				<% }) %>
+			</dd>
+		</dl>
+	</script>
+
+	<script type="text/jform" id="suggest">
+		<dl class="jf-field jf-suggest">
+			<dt><span class="title"><label for="<%= uid %>"><%= title %></label><i></i></span></dt>
+			<dd class="jf-input-container">
+				<select id="<%= uid %>" <%= placeholder ? 'data-placeholder="' + placeholder + '"' : '' %> name="<%= name %>" class="chzn-select">
+				<% if ( placeholder ) { %>
+				<option value=""></option>
+				<% } %>
+				<% _.each( options, function (x) { %>
+				<option value="<%= x.id %>"><%= x.title %></option><% }); %>
+				</select>
+			</dd>
+		</dl>
+	</script>
+
+	<script type="text/jform" id="hidden">
+		<input class="jf-field jf-hidden" id="<%= uid %>" type="hidden" name="<%= name %>" value="<%= value ? value : '' %>" />
+	</script>
+
+	<script type="text/jform" id="file">
+		<dl class="jf-field jf-file">
+			<dt><span class="title"><label for="<%= uid %>"><%= title %></label><i></i></span></dt>
+			<dd class="jf-input-container">
+				<i class="wrapper">
+					<input class="jf-file" id="<%= uid %>" type="file" name="<%= name %>" />
+					<i class="button"></i>
+				</i>
+				<span class="filename"></span>
+			</dd>
+		</dl>
+	</script>
+
+	<script type="text/jform" id="avatar">
+		<dl class="jf-field jf-file jf-avatar">
+			<dt><span class="title"><label for="<%= uid %>"><%= title %></label><i></i></span></dt>
+			<dd class="jf-input-container">
+				<div class="avatar-img"></div>
+				<i class="wrapper">
+					<input class="jf-file" id="<%= uid %>" type="file" name="<%= name %>" />
+					<i ><%= buttonTitle %></i>
+				</i>
+				<span class="filename"></span>
+			</dd>
+		</dl>
+	</script>
+
+	<script type="text/jform" id="visibility">
+		<span class="jf-field jf-visibility jf-visibility-<%= value %>" data-name="<%=name%>">
+			<i class="jf-visibility-value jf-visibility-all" data-value="all"></i>
+			<i class="jf-visibility-value jf-visibility-restricted" data-value="restricted"></i>
+			<i class="jf-visibility-value jf-visibility-hidden" data-value="hidden"></i>
+		</span>
+	</script>
+
+	<script type="text/jform" id="date">
+		<dl class="jf-field jf-date">
+			<dt><span class="title"><label for="<%= uid %>"><%= title %></label><i></i></span></dt>
+			<dd>
+				<input min="1" max="31" class="jf-day" type="text" size="2" name="<%= name %>Day" value="<%= value.day %>" />
+				<div class="jf-select-container">
+					<span class="w-select"><span class="value"></span><i></i></span><select class="jf-select-input jf-month" name="<%= name %>Month"></select>
+				</div>
+				<input class="jf-year" type="text" size="4" name="<%= name %>Year" value="<%= value.year %>" />
+			</dd>
+		</dl>
+	</script>
+
+	<script type="text/jform" id="select">
+		<dl class="jf-field jf-select">
+			<dt><span class="title"><label for="<%= uid %>"><%= title %></label><i></i></span></dt>
+			<dd></dd>
+		</dl>
+	</script>
+	<script type="text/jform" id="select-widget">
+		<div class="jf-select-container">
+			<span class="w-select"><span class="value"></span><i></i></span>
+			<select class="jf-select-input" name="<%= name %>">
+			</select>
+		</div>
+	</script>
+	<script type="text/jform" id="multilevelselect-widget">
+		<div class="jf-select-wrapper">
+			<div class="jf-select-container">
+				<span class="w-select"><span class="value"></span><i></i></span>
+				<select class="jf-select-input" name="<%= name %>" data-level="<%= level %>">
+				</select>
+			</div>
+		</div>
+	</script>
+	<script type="text/jform" id="multilevelSelect">
+		<dl class="jf-field jf-select jf-multilevelSelect">
+			<dt><span class="title"><label for="<%= uid %>"><%= title %></label><i></i></span></dt>
+			<dd>
+				<input type="hidden" name="<%= name %>" value="<%= value %>" />
+			</dd>
+		</dl>
+	</script>
+
+</jform>
