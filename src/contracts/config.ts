@@ -74,6 +74,14 @@ export interface WormConfig {
 	readonly stuckTimeout: number;
 	/** Seconds an abandoned food item stays blacklisted for this worm. */
 	readonly retargetCooldown: number;
+	/** Gap under which a foreign body pushes this worm aside, px. */
+	readonly separationRange: number;
+	/** Strength of that sideways push, radians at full crowding. */
+	readonly separationStrength: number;
+	/** How many of the nearest food items a worm will consider. */
+	readonly foragingCandidates: number;
+	/** Bias toward the nearest candidate: 1 = uniform, higher = greedier. */
+	readonly foragingBias: number;
 	/** Minimum px of approach that counts as progress. */
 	readonly minProgress: number;
 }
@@ -130,6 +138,12 @@ export interface PhysicsConfig {
 	 */
 	readonly selfContactExclusion: number;
 	/** Cell size of the uniform spatial hash grid, px. */
+	/**
+	 * Segments at the eater's head that may overlap the meal they are
+	 * chasing. Beyond this window the body shoves food aside like any
+	 * other worm would, so an abandoned item is never left buried.
+	 */
+	readonly eaterHeadExemption: number;
 	readonly gridCellSize: number;
 }
 

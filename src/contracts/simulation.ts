@@ -32,6 +32,8 @@ export interface WormContext {
 	readonly worldHeight: number;
 	readonly edgeMargin: number;
 	readonly food: readonly FoodTarget[];
+	/** foodId -> id of the worm currently heading for it, this tick. */
+	readonly claims: ReadonlyMap<string, string>;
 	/** All collidable circles this tick, including the worm's own body. */
 	readonly obstacles: readonly CircleObstacle[];
 	/** Hard contact resolution against the same set. */

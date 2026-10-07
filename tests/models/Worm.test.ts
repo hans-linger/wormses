@@ -21,6 +21,7 @@ function makeContext(overrides: Partial<WormContext> = {}): WormContext {
 		worldHeight: 600,
 		edgeMargin: 100,
 		food: [],
+		claims: new Map<string, string>(),
 		physics: config.physics,
 		resolve: (center, radius, accept) =>
 			resolveContacts(center, radius, grid, accept, config.physics),
@@ -250,5 +251,90 @@ describe("Worm intellect", () => {
 			}
 		}
 		expect(ate).toBe("f2");
+	});
+});
+
+describe("Worm foraging", () => {
+	const spread = (): { id: string; position: Vec2; radius: number }[] => {
+		const items: { id: string; position: Vec2; radius: number }[] = [];
+		for (let i = 0; i < 20; i++) {
+			items.push({
+				id: `f${String(i)}`,
+				position: new Vec2(40 + (i % 5) * 170, 60 + Math.floor(i / 5) * 160),
+				radius: 10,
+			});
+		}
+		return items;
+	};
+
+	it("always targets one of the nearest few items, never the far side", () => {
+		const food = spread();
+		for (let seed = 0; seed < 40; seed++) {
+			const worm = new Worm("w", new Vec2(60, 80), 0, new Rng(seed), config.worm);
+			worm.update(makeContext({ rng: new Rng(seed), food }));
+			const target = food.find((f) => f.id === worm.targetId);
+			expect(target).toBeDefined();
+			const ranked = [...food].sort(
+				(a, b) =>
+					a.position.distanceTo(new Vec2(60, 80)) -
+					b.position.distanceTo(new Vec2(60, 80))
+			);
+			const nearest = ranked
+				.slice(0, config.worm.foragingCandidates)
+				.map((f) => f.id);
+			expect(nearest).toContain(target!.id);
+		}
+	});
+
+	it("prefers the closest item most of the time", () => {
+		const food = [
+			{ id: "near", position: new Vec2(430, 300), radius: 10 },
+			{ id: "far", position: new Vec2(760, 560), radius: 10 },
+		];
+		let near = 0;
+		for (let seed = 0; seed < 200; seed++) {
+			const worm = makeWorm();
+			worm.update(makeContext({ rng: new Rng(seed), food }));
+			if (worm.targetId === "near") near++;
+		}
+		expect(near / 200).toBeGreaterThan(0.6);
+	});
+
+	it("leaves food already claimed by another worm to that worm", () => {
+		const food = [
+			{ id: "taken", position: new Vec2(430, 300), radius: 10 },
+			{ id: "free", position: new Vec2(430, 340), radius: 10 },
+		];
+		const worm = makeWorm();
+		worm.update(
+			makeContext({ food, claims: new Map([["taken", "worm_other"]]) })
+		);
+		expect(worm.targetId).toBe("free");
+	});
+
+	it("still eats when every item is claimed (no starving standoff)", () => {
+		const food = [{ id: "only", position: new Vec2(430, 300), radius: 10 }];
+		const worm = makeWorm();
+		worm.update(
+			makeContext({ food, claims: new Map([["only", "worm_other"]]) })
+		);
+		expect(worm.targetId).toBe("only");
+	});
+
+	it("sticks with its chosen target across ticks instead of re-picking", () => {
+		const food = [
+			{ id: "a", position: new Vec2(600, 300), radius: 10 },
+			{ id: "b", position: new Vec2(420, 300), radius: 10 },
+		];
+		const worm = makeWorm();
+		worm.update(makeContext({ food }));
+		const chosen = worm.targetId;
+		expect(chosen).not.toBeNull();
+		// Its own claim must not scare it off its own target.
+		const claims = new Map([[chosen!, "worm_t"]]);
+		for (let step = 1; step < 20; step++) {
+			worm.update(makeContext({ time: step / 60, food, claims }));
+			expect(worm.targetId).toBe(chosen);
+		}
 	});
 });

@@ -49,6 +49,10 @@ export function defaultConfig(
 			ownBodyAvoidFactor: 0.5,
 			stuckTimeout: 3.5,
 			retargetCooldown: 6,
+			separationRange: 28,
+			separationStrength: 1.5,
+			foragingCandidates: 4,
+			foragingBias: 2,
 			minProgress: 3,
 		},
 		egg: {
@@ -71,10 +75,11 @@ export function defaultConfig(
 		physics: {
 			iterations: 3,
 			passiveIterations: 16,
-			stiffness: 0.7,
+			stiffness: 0.85,
 			separationSlack: 0.5,
 			maxCorrection: 4,
 			selfContactExclusion: 4,
+			eaterHeadExemption: 5,
 			gridCellSize: 40,
 		},
 		...overrides,

@@ -191,6 +191,14 @@ export class World {
 			radius: f.value,
 		}));
 
+		// Who is already heading where, so worms spread across the field
+		// instead of mobbing the same item.
+		const claims = new Map<string, string>();
+		for (const worm of this.worms.values()) {
+			const targetId = worm.targetId;
+			if (targetId !== null) claims.set(targetId, worm.id);
+		}
+
 		for (const worm of [...this.worms.values()]) {
 			const intent = worm.update({
 				time: this.time,
@@ -200,11 +208,14 @@ export class World {
 				worldHeight: this.config.height,
 				edgeMargin: this.config.edgeMargin,
 				food: foodTargets,
+				claims,
 				obstacles,
 				physics,
 				resolve: (center, radius, accept) =>
 					resolveContacts(center, radius, grid, accept, physics),
 			});
+			const claimed = worm.targetId;
+			if (claimed !== null) claims.set(claimed, worm.id);
 			if (intent === null) continue;
 			switch (intent.type) {
 				case "eat": {
@@ -300,7 +311,11 @@ export class World {
 					item.position,
 					item.radius,
 					grid,
-					eater === undefined ? acceptAll : (o) => o.ownerId !== eater,
+					eater === undefined
+						? acceptAll
+						: (o) =>
+								o.ownerId !== eater ||
+								(o.segmentIndex ?? 0) >= physics.eaterHeadExemption,
 					pass
 				)
 			);

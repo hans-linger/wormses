@@ -1,6 +1,6 @@
 import type { Rng } from "../core/Rng";
 import { Vec2 } from "../core/Vec2";
-import { turnToward } from "../core/angles";
+import { normalizeAngle, turnToward } from "../core/angles";
 import type {
 	CircleObstacle,
 	ContactResolver,
@@ -18,7 +18,11 @@ import type {
 import type { WormSnapshot } from "../contracts/snapshots";
 import { findNearestThreat, isStructuralNeighbor } from "../systems/collision";
 import { classicHarmonics, widthAt } from "../systems/harmonics";
-import { combineSeekAvoid, maxTurnRate } from "../systems/steering";
+import {
+	combineSeekAvoid,
+	maxTurnRate,
+	separationOffset,
+} from "../systems/steering";
 import { Spine } from "./Spine";
 
 export class Worm {
@@ -173,6 +177,14 @@ export class Worm {
 		}
 	}
 
+	/**
+	 * Foraging: worms eat locally. Picking uniformly from the whole world
+	 * made every worm cross the map and pile up in one corner; instead a
+	 * worm ranks food by distance, keeps the nearest few, and picks among
+	 * those with a bias toward the closest — near-sighted but not robotic.
+	 * Items another worm is already heading for are left alone, unless
+	 * nothing else is on offer, so worms fan out across the field.
+	 */
 	private acquireTarget(ctx: WormContext): FoodTarget | null {
 		for (const [id, expiry] of this.foodBlacklist) {
 			if (expiry <= ctx.time) this.foodBlacklist.delete(id);
@@ -181,12 +193,32 @@ export class Worm {
 			const existing = ctx.food.find((f) => f.id === this.targetFoodId);
 			if (existing !== undefined) return existing;
 		}
-		const candidates = ctx.food.filter((f) => !this.foodBlacklist.has(f.id));
+
+		const open = ctx.food.filter((f) => !this.foodBlacklist.has(f.id));
+		const claimedByOthers = (f: FoodTarget): boolean => {
+			const owner = ctx.claims.get(f.id);
+			return owner !== undefined && owner !== this.id;
+		};
+		const unclaimed = open.filter((f) => !claimedByOthers(f));
+		// Falling back to contested food keeps a worm fed when the field is
+		// fully spoken for, rather than starving it into a standoff.
+		const candidates = unclaimed.length > 0 ? unclaimed : open;
 		if (candidates.length === 0) {
 			this.targetFoodId = null;
 			return null;
 		}
-		const picked = ctx.rng.pick(candidates);
+
+		const head = this.headPosition;
+		const nearest = [...candidates]
+			.sort((a, b) => head.distanceTo(a.position) - head.distanceTo(b.position))
+			.slice(0, Math.max(1, this.config.foragingCandidates));
+		const roll = Math.pow(ctx.rng.float(), this.config.foragingBias);
+		const picked = nearest[Math.min(nearest.length - 1, Math.floor(roll * nearest.length))];
+		if (picked === undefined) {
+			this.targetFoodId = null;
+			return null;
+		}
+
 		this.targetFoodId = picked.id;
 		this.bestTargetDist = Infinity;
 		this.lastProgressAt = ctx.time;
@@ -270,9 +302,16 @@ export class Worm {
 		);
 		let threat = this.findThreat(ctx, bodyRadius, lookAhead);
 
-		// Goal awareness: an obstacle farther away than the target itself is
-		// irrelevant — we will have eaten before reaching it.
-		if (threat !== null && hasTarget && threat.distance > dist) {
+		// Goal awareness: scenery farther away than the target itself is
+		// irrelevant, since we will have eaten before reaching it. Another
+		// worm never is — food often sits just past someone's body, and
+		// treating that body as ignorable drove worms straight through it.
+		if (
+			threat !== null &&
+			hasTarget &&
+			threat.distance > dist &&
+			threat.obstacle.kind !== "worm"
+		) {
 			threat = null;
 		}
 
@@ -293,7 +332,23 @@ export class Worm {
 		}
 
 		const seekHeading = seekPoint.sub(head).angle();
-		const desired = combineSeekAvoid(seekHeading, threat, lookAhead, avoidStrength);
+		let desired = combineSeekAvoid(seekHeading, threat, lookAhead, avoidStrength);
+
+		// Personal space: drift away from any foreign body crowding the head,
+		// whether or not it is in the feeler's path.
+		desired = normalizeAngle(
+			desired +
+				separationOffset(
+					head,
+					this.heading,
+					ctx.obstacles.filter(
+						(o) => o.kind === "worm" && o.ownerId !== this.id
+					),
+					headHalfWidth,
+					cfg.separationRange,
+					cfg.separationStrength
+				)
+		);
 
 		// Width-limited turning: radius never below one body radius.
 		const turnCap =
