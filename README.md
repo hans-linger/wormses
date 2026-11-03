@@ -27,7 +27,7 @@ scaled live from the debug panel (press `H`).
 
 Worm bodies are capsule chains — one circle per spine segment, radius equal
 to that segment's harmonic half-width. Everything else (food, eggs) is a
-circle. Three layers keep bodies apart:
+circle. Four layers keep bodies apart:
 
 1. **Self-intersection.** The steering turn rate is capped so the head's
    turning radius never drops below the local body radius, and each spine
@@ -39,7 +39,13 @@ circle. Three layers keep bodies apart:
    the head fits through but the belly does not is no gap at all. The feeler
    reaches farther the fatter and faster the worm is, since turning radius
    grows with width. Worms commit to a side rather than dithering.
-3. **Hard contact resolution.** Position-based correction over a uniform
+3. **Personal space.** The feeler only sees straight ahead, so worms sharing
+   a patch would slide along each other. A separation term pushes away from
+   any foreign body crowding the head. Only the component *across* the
+   heading is steered on — steering on the raw direction gives a bang-bang
+   controller that slams between full left and full right as a neighbour
+   drifts past the nose, and worms lock into oscillation.
+4. **Hard contact resolution.** Position-based correction over a uniform
    spatial hash, run again after every worm has moved (per-worm resolution
    only sees start-of-tick geometry, so two worms closing on each other would
    both act on stale data). Corrections are capped per iteration: without

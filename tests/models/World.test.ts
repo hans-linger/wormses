@@ -51,55 +51,59 @@ describe("World setup", () => {
 	});
 });
 
-describe("World collision behavior over time", () => {
-	// Worms are long deformable bodies whose tails must follow their heads,
-	// so two crossing worms can press into each other for a moment before the
-	// solver eases them apart. What must never happen is one passing through
-	// another, or the contact growing without bound (a solver blow-up).
-	const world = new World(defaultConfig({ seed: 5 }));
-	let worstOverlap = 0;
-	let contactSamples = 0;
-	let samples = 0;
-	let worstHeadStep = 0;
-	const previousHeads = new Map<string, { x: number; y: number }>();
+describe.each([5, 42, 77, 1234])(
+	"World collision behavior over time (seed %i)",
+	(seed) => {
+		// Worms are long deformable bodies whose tails must follow their heads,
+		// so two crossing worms can press into each other for a moment before
+		// the solver eases them apart. What must never happen is one passing
+		// through another, or the contact growing without bound (a blow-up).
+		// Run across several seeds: a single seed hides crowded populations.
+		const world = new World(defaultConfig({ seed }));
+		let worstOverlap = 0;
+		let contactSamples = 0;
+		let samples = 0;
+		let worstHeadStep = 0;
+		const previousHeads = new Map<string, { x: number; y: number }>();
 
-	for (let step = 0; step < 60 * 60; step++) {
-		world.update(1 / 60);
-		const frame = world.snapshot();
-		for (const worm of frame.worms) {
-			const head = worm.segments[0];
-			if (head === undefined) continue;
-			const previous = previousHeads.get(worm.id);
-			if (previous !== undefined) {
-				worstHeadStep = Math.max(
-					worstHeadStep,
-					Math.hypot(head.x - previous.x, head.y - previous.y)
-				);
+		for (let step = 0; step < 60 * 60; step++) {
+			world.update(1 / 60);
+			const frame = world.snapshot();
+			for (const worm of frame.worms) {
+				const head = worm.segments[0];
+				if (head === undefined) continue;
+				const previous = previousHeads.get(worm.id);
+				if (previous !== undefined) {
+					worstHeadStep = Math.max(
+						worstHeadStep,
+						Math.hypot(head.x - previous.x, head.y - previous.y)
+					);
+				}
+				previousHeads.set(worm.id, { x: head.x, y: head.y });
 			}
-			previousHeads.set(worm.id, { x: head.x, y: head.y });
+			if (step % 20 !== 0) continue;
+			samples++;
+			const overlap = worstWormOverlap(frame);
+			if (overlap > 0.01) contactSamples++;
+			worstOverlap = Math.max(worstOverlap, overlap);
 		}
-		if (step % 20 !== 0) continue;
-		samples++;
-		const overlap = worstWormOverlap(frame);
-		if (overlap > 0.01) contactSamples++;
-		worstOverlap = Math.max(worstOverlap, overlap);
+
+		it("never lets one worm pass through another", () => {
+			// A pass-through would exceed a full body diameter of penetration.
+			expect(worstOverlap).toBeLessThan(25);
+		});
+
+		it("leaves worms apart most of the time", () => {
+			expect(contactSamples / samples).toBeLessThan(0.25);
+		});
+
+		it("stays numerically stable — no solver blow-ups", () => {
+			// Runaway position correction used to fling heads hundreds of px
+			// per tick into the world corners.
+			expect(worstHeadStep).toBeLessThan(60);
+		});
 	}
-
-	it("never lets one worm pass through another", () => {
-		// A pass-through would exceed a full body diameter of penetration.
-		expect(worstOverlap).toBeLessThan(25);
-	});
-
-	it("leaves worms apart most of the time", () => {
-		expect(contactSamples / samples).toBeLessThan(0.25);
-	});
-
-	it("stays numerically stable — no solver blow-ups", () => {
-		// Runaway position correction used to fling heads hundreds of px per
-		// tick into the world corners.
-		expect(worstHeadStep).toBeLessThan(60);
-	});
-});
+);
 
 describe("World 60-second smoke run", () => {
 	const world = new World(defaultConfig({ seed: 42 }));

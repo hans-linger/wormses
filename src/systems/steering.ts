@@ -39,9 +39,14 @@ export function combineSeekAvoid(
 /**
  * Personal space. The forward feeler only sees what is directly ahead, so
  * worms foraging the same patch would slide along each other for seconds at
- * a time. This adds a gentle push away from nearby foreign bodies in any
- * direction, proportional to how close and how abreast they are — the
- * difference between a crowd and a shoal.
+ * a time. This adds a push away from nearby foreign bodies in any
+ * direction, proportional to how close they are.
+ *
+ * Only the component across our heading is steered on: a neighbour dead
+ * ahead or dead behind produces no turn (that is the feeler's job), one
+ * abreast produces the most. Steering on the raw direction instead makes a
+ * bang-bang controller that slams between full left and full right as a
+ * neighbour drifts past the nose, and worms lock into oscillation.
  */
 export function separationOffset(
 	position: Vec2,
@@ -57,7 +62,7 @@ export function separationOffset(
 		const away = position.sub(neighbor.center);
 		const gap = away.length() - neighbor.radius - ownRadius;
 		if (gap >= range) continue;
-		// Weight rises as the gap closes; overlapping neighbors weigh most.
+		// Weight rises as the gap closes; overlapping neighbours weigh most.
 		const weight = clamp01(1 - gap / range);
 		const dir = away.normalize();
 		pushX += dir.x * weight;
@@ -65,11 +70,8 @@ export function separationOffset(
 	}
 	if (pushX === 0 && pushY === 0) return 0;
 
-	const desired = Math.atan2(pushY, pushX);
-	const magnitude = Math.min(1, Math.hypot(pushX, pushY));
-	// Only the component across our heading matters; braking is the speed
-	// controller's job, not the steering's.
-	return normalizeAngle(desired - heading) >= 0
-		? strength * magnitude
-		: -strength * magnitude;
+	// Lateral component of the crowding, as sin(angle) in [-1, 1]: smooth
+	// through zero, so the turn eases in and out instead of flipping.
+	const lateral = Math.cos(heading) * pushY - Math.sin(heading) * pushX;
+	return strength * Math.max(-1, Math.min(1, lateral));
 }
